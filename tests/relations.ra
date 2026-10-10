@@ -1,0 +1,10 @@
+Member(Id, Name, Age, Place) = {
+1, Alice, 25, Ottawa
+2, Bob, 30, Toronto
+3, Charlie, 35, Ottawa
+}
+
+Chapter(Name, Location) = {
+North, Ottawa
+South, Toronto
+}
