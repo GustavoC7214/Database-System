@@ -11,6 +11,7 @@ from src.parser.ast import (
     BooleanOperator,
     Comparison,
     ComparisonOperator,
+    Distinct,
     Join,
     Not,
     NumberLiteral,
@@ -32,7 +33,8 @@ def test_evaluate_relation_reference():
     evaluator = Evaluator(database)
     expression = RelationReference("Employees")
     result = evaluator.evaluate(expression)
-    assert result is employees
+    assert result == employees
+    assert result is not employees
 
 
 def test_evaluate_undefined_relation():
@@ -482,7 +484,7 @@ def test_evaluate_project_multiple_columns():
     assert result.rows == [Row(["Ottawa", "John"])]
 
 
-def test_evaluate_project_remove_duplicates():
+def test_evaluate_project_preserves_duplicates():
     database = Database()
     employees = Relation(
         "Employees",
@@ -506,7 +508,11 @@ def test_evaluate_project_remove_duplicates():
 
     result = evaluator.evaluate(expression)
 
-    assert result.rows == [Row(["John"]), Row(["Alice"])]
+    assert result.rows == [
+        Row(["John"]),
+        Row(["Alice"]),
+        Row(["John"]),
+    ]
 
 
 def test_evaluate_project_over_select():
@@ -1531,7 +1537,7 @@ def test_evaluate_union():
     ]
 
 
-def test_evaluate_union_removes_duplicates():
+def test_evaluate_union_preserves_duplicates():
     database = Database()
 
     members = Relation(
@@ -1560,6 +1566,7 @@ def test_evaluate_union_removes_duplicates():
 
     assert result.rows == [
         Row(["Alice"]),
+        Row(["Bob"]),
         Row(["Bob"]),
         Row(["Charlie"]),
     ]
@@ -1799,7 +1806,7 @@ def test_evaluate_intersection_no_matches():
     assert result.rows == []
 
 
-def test_evaluate_intersection_removes_duplicates():
+def test_evaluate_intersection_preserves_duplicates():
     database = Database()
 
     members = Relation(
@@ -1826,7 +1833,10 @@ def test_evaluate_intersection_removes_duplicates():
 
     result = evaluator.evaluate(expression)
 
-    assert result.rows == [Row(["Bob"])]
+    assert result.rows == [
+        Row(["Bob"]),
+        Row(["Bob"]),
+    ]
 
 
 def test_evaluate_intersection_empty_relation():
@@ -2018,7 +2028,7 @@ def test_evaluate_difference_all_matches():
     assert result.rows == []
 
 
-def test_evaluate_difference_removes_duplicates():
+def test_evaluate_difference_preserves_remaining_duplicates():
     database = Database()
 
     members = Relation(
@@ -2045,7 +2055,10 @@ def test_evaluate_difference_removes_duplicates():
 
     result = evaluator.evaluate(expression)
 
-    assert result.rows == [Row(["Alice"])]
+    assert result.rows == [
+        Row(["Alice"]),
+        Row(["Alice"])
+    ]
 
 
 def test_evaluate_difference_empty_left_relation():
@@ -2500,3 +2513,135 @@ def test_join_counter_counts_tuple_pair_comparisons():
 
     assert len(result.rows) == 10
     assert evaluator.join_comparisons == 50
+
+
+def test_evaluate_union_preserves_overlapping_rows():
+    database = Database()
+
+    database.add_relation(
+        Relation(
+            "R",
+            [Attribute("R", "a")],
+            [Row([1]), Row([1]), Row([2])],
+        )
+    )
+
+    database.add_relation(
+        Relation(
+            "S",
+            [Attribute("S", "a")],
+            [Row([1]), Row([3])],
+        )
+    )
+
+    evaluator = Evaluator(database)
+
+    expression = BinaryExpression(
+        RelationReference("R"),
+        BinaryOperator.UNION,
+        RelationReference("S"),
+    )
+
+    result = evaluator.evaluate(expression)
+
+    assert result.rows == [
+        Row([1]),
+        Row([1]),
+        Row([2]),
+        Row([1]),
+        Row([3]),
+    ]
+
+
+def test_evaluate_intersect_bag_multiplicities():
+    database = Database()
+
+    database.add_relation(
+        Relation(
+            "R",
+            [Attribute("R", "a")],
+            [Row([1]), Row([1]), Row([1]), Row([2])],
+        )
+    )
+
+    database.add_relation(
+        Relation(
+            "S",
+            [Attribute("S", "a")],
+            [Row([1]), Row([1]), Row([3])],
+        )
+    )
+
+    evaluator = Evaluator(database)
+
+    expression = BinaryExpression(
+        RelationReference("R"),
+        BinaryOperator.INTERSECT,
+        RelationReference("S"),
+    )
+
+    result = evaluator.evaluate(expression)
+
+    assert result.rows == [
+        Row([1]),
+        Row([1]),
+    ]
+
+
+def test_evaluate_minus_bag_multiplicities():
+    database = Database()
+
+    database.add_relation(
+        Relation(
+            "R",
+            [Attribute("R", "a")],
+            [Row([1]), Row([1]), Row([1]), Row([2])],
+        )
+    )
+
+    database.add_relation(
+        Relation(
+            "S",
+            [Attribute("S", "a")],
+            [Row([1]), Row([1]), Row([3])],
+        )
+    )
+
+    evaluator = Evaluator(database)
+
+    expression = BinaryExpression(
+        RelationReference("R"),
+        BinaryOperator.MINUS,
+        RelationReference("S"),
+    )
+
+    result = evaluator.evaluate(expression)
+
+    assert result.rows == [
+        Row([1]),
+        Row([2]),
+    ]
+
+
+def test_evaluate_distinct_removes_duplicates():
+    database = Database()
+
+    database.add_relation(
+        Relation(
+            "R",
+            [Attribute("R", "a")],
+            [Row([1]), Row([1]), Row([2]), Row([2]), Row([3])],
+        )
+    )
+
+    evaluator = Evaluator(database)
+
+    expression = Distinct(RelationReference("R"))
+
+    result = evaluator.evaluate(expression)
+
+    assert result.rows == [
+        Row([1]),
+        Row([2]),
+        Row([3]),
+    ]

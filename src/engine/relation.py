@@ -33,14 +33,9 @@ class Relation:
     attributes: list[Attribute]
     rows: list[Row]
     def __post_init__(self) -> None:
-        unique_rows: list[Row] = []
-
         for row in self.rows:
             if len(row.values) != len(self.attributes):
                 raise ValueError(
-                    f"Row has {len(row.values)} values but relation has {len(self.attributes)} attributes"
+                    f"Row has {len(row.values)} values but relation has "
+                    f"{len(self.attributes)} attributes"
                 )
-            
-            if row not in unique_rows:
-                unique_rows.append(row)
-        self.rows = unique_rows

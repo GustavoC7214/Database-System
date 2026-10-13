@@ -39,7 +39,7 @@ def test_relation_rejects_row_with_wrong_number_of_values():
         Relation("Employees", attributes, [row])
 
 
-def test_relations_removed_duplicate_rows():
+def test_relations_preserve_duplicate_rows():
     attributes = [
     Attribute("Employees", "E1"),
     Attribute("Employees", "Alice"),
@@ -51,4 +51,18 @@ def test_relations_removed_duplicate_rows():
 
     relation = Relation("Employees", attributes, [row1, row2, row3])
 
-    assert len(relation.rows) == 2
+    assert relation.rows == [row1, row2, row3]
+
+
+def test_relation_preserves_duplicate_rows():
+    relation = Relation(
+        "R",
+        [Attribute("R", "a")],
+        [Row([1]), Row([1]), Row([2])],
+    )
+
+    assert relation.rows == [
+        Row([1]),
+        Row([1]),
+        Row([2]),
+    ]

@@ -1,3 +1,5 @@
+from collections.abc import Iterator
+
 from src.engine.relation import Attribute, Relation, Row
 from src.parser.ast import RelationDefinition
 
@@ -14,6 +16,9 @@ class Database:
             return self.relations[name]
         except KeyError:
             raise NameError(f"Undefined relation: {name}") from None
+
+    def iter_rows(self, name: str) -> Iterator[Row]:
+        yield from self.get_relation(name).rows
 
     def load_definition(self, definition: RelationDefinition) -> None:
         attributes = [Attribute(definition.name, name) for name in definition.attributes]

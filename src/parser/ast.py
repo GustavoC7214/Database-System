@@ -96,6 +96,9 @@ class Project(Expression):
     attributes: list[AttributeReference]
     expression: Expression
 
+@dataclass
+class Distinct(Expression):
+    expression: Expression
 
 @dataclass
 class Rename(Expression):

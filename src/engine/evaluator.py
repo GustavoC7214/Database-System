@@ -1,7 +1,7 @@
 import operator
 
-from src.engine.database import Database
 from src.engine.relation import Attribute, Relation, Row
+from src.engine.tuple_provider import TupleProvider
 from src.parser.ast import (
     AttributeReference,
     BinaryExpression,
@@ -11,6 +11,7 @@ from src.parser.ast import (
     Comparison,
     ComparisonOperator,
     Condition,
+    Distinct,
     Expression,
     Join,
     Not,
@@ -27,178 +28,283 @@ from src.parser.ast import (
 
 
 class Evaluator:
-    def __init__(self, database: Database) -> None:
+    def __init__(self, database: TupleProvider | None) -> None:
         self.database = database
         self.join_comparisons = 0
         self.selection_tuples_examined = 0
 
     def evaluate(self, expression: Expression) -> Relation:
         if isinstance(expression, RelationReference):
-            return self.database.get_relation(expression.name)
+            if self.database is None:
+                raise ValueError("A database is required to evaluate relation references")
+
+            relation = self.database.get_relation(expression.name)
+
+            return Relation(
+                name=relation.name,
+                attributes=relation.attributes.copy(),
+                rows=list(self.database.iter_rows(expression.name)),
+            )
         
         if isinstance(expression, Select):
-            relation = self.evaluate(expression.expression)
-            selected_rows = []
+            return self.evaluate_select(expression)
 
-            for row in relation.rows:
-                self.selection_tuples_examined += 1
-
-                if self.evaluate_condition(expression.condition, relation, row):
-                    selected_rows.append(row)
-
-            return Relation(relation.name, relation.attributes, selected_rows)
+        if isinstance(expression, Distinct):
+            return self.evaluate_distinct(expression)
 
         if isinstance(expression, Project):
-            relation = self.evaluate(expression.expression)
-            column_indicies = []
-
-            for attribute in expression.attributes:
-                index = self.resolve_attribute(attribute, relation)
-
-                if index in column_indicies:
-                    raise ValueError(
-                        f"Duplicate projection attribute: {attribute.name}"
-                    )
-
-                column_indicies.append(index)
-
-            projected_rows = []
-
-            for row in relation.rows:
-                values = [row.values[index] for index in column_indicies]
-                projected_rows.append(Row(values))
-
-            projected_attributes = [
-                relation.attributes[index] for index in column_indicies
-            ]
-
-            return Relation(
-                relation.name,
-                projected_attributes,
-                projected_rows,
-            )
+            return self.evaluate_project(expression)
 
         if isinstance(expression, Sort):
-            relation = self.evaluate(expression.expression)
-            column_index = self.resolve_attribute(expression.attribute, relation)
-            sorted_rows = sorted(
-                relation.rows,
-                key = lambda row: row.values[column_index],
-                reverse = expression.direction == SortDictionary.DESC
-            )
-            return Relation(relation.name, relation.attributes, sorted_rows)
+            return self.evaluate_sort(expression)
 
         if isinstance(expression, BinaryExpression):
-            if expression.operator == BinaryOperator.TIMES:
-                left_relation = self.evaluate(expression.left)
-                right_relation = self.evaluate(expression.right)
-                combined_attributes = left_relation.attributes + right_relation.attributes
-                self.check_attribute_collisions(combined_attributes)
-                combined_rows = []
-
-                for left_row in left_relation.rows:
-                    for right_row in right_relation.rows:
-                        combined_values = left_row.values + right_row.values
-                        combined_rows.append(Row(combined_values))
-
-                return Relation(left_relation.name, combined_attributes, combined_rows)
-            
-            if expression.operator == BinaryOperator.UNION:
-                left_relation = self.evaluate(expression.left)
-                right_relation = self.evaluate(expression.right)
-
-                self.check_union_compatibility(left_relation, right_relation)
-
-                combined_rows = left_relation.rows + right_relation.rows
-                unique_rows = []
-
-                for row in combined_rows:
-                    if row not in unique_rows:
-                        unique_rows.append(row)
-
-                return Relation(left_relation.name, left_relation.attributes, unique_rows)
-
-            if expression.operator == BinaryOperator.MINUS:
-                left_relation = self.evaluate(expression.left)
-                right_relation = self.evaluate(expression.right)
-
-                self.check_union_compatibility(left_relation, right_relation)
-
-                difference_rows = []
-
-                for row in left_relation.rows:
-                    if row not in right_relation.rows and row not in difference_rows:
-                        difference_rows.append(row)
-
-                return Relation(left_relation.name, left_relation.attributes, difference_rows)
-
-            if expression.operator == BinaryOperator.INTERSECT:
-                left_relation = self.evaluate(expression.left)
-                right_relation = self.evaluate(expression.right)
-
-                self.check_union_compatibility(left_relation, right_relation)
-
-                intersected_rows = []
-
-                for row in left_relation.rows:
-                    if row in right_relation.rows and row not in intersected_rows:
-                        intersected_rows.append(row)
-
-                return Relation(left_relation.name, left_relation.attributes, intersected_rows)
+            return self.evaluate_binary(expression)
 
         if isinstance(expression, Join):
-            left_relation = self.evaluate(expression.left)
-            right_relation = self.evaluate(expression.right)
-
-            combined_attributes = (
-                left_relation.attributes
-                + right_relation.attributes
-            )
-
-            self.check_attribute_collisions(combined_attributes)
-
-            combined_relation = Relation(
-                left_relation.name,
-                combined_attributes,
-                [],
-            )
-
-            joined_rows = []
-            
-            for left_row in left_relation.rows:
-                for right_row in right_relation.rows:
-                    self.join_comparisons += 1
-                    combined_values = left_row.values + right_row.values
-                    combined_row = Row(combined_values)
-                    if self.evaluate_condition(expression.condition, combined_relation, combined_row):
-                        joined_rows.append(combined_row)
-
-            return Relation(left_relation.name, combined_attributes, joined_rows)
+            return self.evaluate_join(expression)
 
         if isinstance(expression, Rename):
-            relation = self.evaluate(expression.expression)
-
-            new_relation_name = expression.new_name
-            attribute_renames = expression.attribute_renames
-
-            renamed_attributes = []
-
-            for attribute in relation.attributes:
-                renamed_attributes.append(
-                    Attribute(
-                        new_relation_name,
-                        attribute_renames.get(attribute.name, attribute.name),
-                    )
-                )
-
-            return Relation(
-                new_relation_name,
-                renamed_attributes,
-                relation.rows,
-            )
+            return self.evaluate_rename(expression)
             
         raise NotImplementedError(
             f"Evaluation not implemented for {type(expression).__name__}"
+        )
+
+    def evaluate_select(self, expression: Select) -> Relation:
+        relation = self.evaluate(expression.expression)
+        selected_rows = []
+
+        for row in relation.rows:
+            self.selection_tuples_examined += 1
+
+            if self.evaluate_condition(expression.condition, relation, row):
+                selected_rows.append(row)
+
+        return Relation(
+            relation.name,
+            relation.attributes,
+            selected_rows,
+        )
+
+    def evaluate_project(self, expression: Project) -> Relation:
+        relation = self.evaluate(expression.expression)
+        column_indices = []
+
+        for attribute in expression.attributes:
+            index = self.resolve_attribute(attribute, relation)
+
+            if index in column_indices:
+                raise ValueError(
+                    f"Duplicate projection attribute: {attribute.name}"
+                )
+
+            column_indices.append(index)
+
+        projected_rows = []
+
+        for row in relation.rows:
+            values = [row.values[index] for index in column_indices]
+            projected_rows.append(Row(values))
+
+        projected_attributes = [
+            relation.attributes[index] for index in column_indices
+        ]
+
+        return Relation(
+            relation.name,
+            projected_attributes,
+            projected_rows,
+        )
+
+    def evaluate_distinct(self, expression: Distinct) -> Relation:
+        relation = self.evaluate(expression.expression)
+        unique_rows = []
+
+        for row in relation.rows:
+            if row not in unique_rows:
+                unique_rows.append(row)
+
+        return Relation(
+            relation.name,
+            relation.attributes,
+            unique_rows,
+        )
+
+    def evaluate_sort(self, expression: Sort) -> Relation:
+        relation = self.evaluate(expression.expression)
+        column_index = self.resolve_attribute(
+            expression.attribute,
+            relation,
+        )
+
+        sorted_rows = sorted(
+            relation.rows,
+            key=lambda row: row.values[column_index],
+            reverse=expression.direction == SortDictionary.DESC,
+        )
+
+        return Relation(
+            relation.name,
+            relation.attributes,
+            sorted_rows,
+        )
+
+    def evaluate_binary(self, expression: BinaryExpression) -> Relation:
+        if expression.operator == BinaryOperator.TIMES:
+            return self.evaluate_times(expression)
+
+        if expression.operator == BinaryOperator.UNION:
+            return self.evaluate_union(expression)
+
+        if expression.operator == BinaryOperator.MINUS:
+            return self.evaluate_minus(expression)
+
+        if expression.operator == BinaryOperator.INTERSECT:
+            return self.evaluate_intersect(expression)
+
+        raise NotImplementedError(
+            f"Unsupported binary operator: {expression.operator}"
+        )
+
+    def evaluate_times(self, expression: BinaryExpression) -> Relation:
+        left_relation = self.evaluate(expression.left)
+        right_relation = self.evaluate(expression.right)
+
+        combined_attributes = (
+            left_relation.attributes + right_relation.attributes
+        )
+        self.check_attribute_collisions(combined_attributes)
+
+        combined_rows = []
+
+        for left_row in left_relation.rows:
+            for right_row in right_relation.rows:
+                combined_values = left_row.values + right_row.values
+                combined_rows.append(Row(combined_values))
+
+        return Relation(
+            left_relation.name,
+            combined_attributes,
+            combined_rows,
+        )
+
+
+    def evaluate_union(self, expression: BinaryExpression) -> Relation:
+        left_relation = self.evaluate(expression.left)
+        right_relation = self.evaluate(expression.right)
+
+        self.check_union_compatibility(left_relation, right_relation)
+
+        combined_rows = left_relation.rows + right_relation.rows
+
+        return Relation(
+            left_relation.name,
+            left_relation.attributes,
+            combined_rows,
+        )
+
+
+    def evaluate_minus(self, expression: BinaryExpression) -> Relation:
+        left_relation = self.evaluate(expression.left)
+        right_relation = self.evaluate(expression.right)
+
+        self.check_union_compatibility(left_relation, right_relation)
+
+        remaining_right_rows = right_relation.rows.copy()
+        difference_rows = []
+
+        for row in left_relation.rows:
+            if row in remaining_right_rows:
+                remaining_right_rows.remove(row)
+            else:
+                difference_rows.append(row)
+
+        return Relation(
+            left_relation.name,
+            left_relation.attributes,
+            difference_rows,
+        )
+
+
+    def evaluate_intersect(self, expression: BinaryExpression) -> Relation:
+        left_relation = self.evaluate(expression.left)
+        right_relation = self.evaluate(expression.right)
+
+        self.check_union_compatibility(left_relation, right_relation)
+
+        remaining_right_rows = right_relation.rows.copy()
+        intersected_rows = []
+
+        for row in left_relation.rows:
+            if row in remaining_right_rows:
+                intersected_rows.append(row)
+                remaining_right_rows.remove(row)
+
+        return Relation(
+            left_relation.name,
+            left_relation.attributes,
+            intersected_rows,
+        )
+
+    def evaluate_join(self, expression: Join) -> Relation:
+        left_relation = self.evaluate(expression.left)
+        right_relation = self.evaluate(expression.right)
+
+        combined_attributes = (
+            left_relation.attributes + right_relation.attributes
+        )
+
+        self.check_attribute_collisions(combined_attributes)
+
+        combined_relation = Relation(
+            left_relation.name,
+            combined_attributes,
+            [],
+        )
+
+        joined_rows = []
+
+        for left_row in left_relation.rows:
+            for right_row in right_relation.rows:
+                self.join_comparisons += 1
+
+                combined_values = left_row.values + right_row.values
+                combined_row = Row(combined_values)
+
+                if self.evaluate_condition(
+                    expression.condition,
+                    combined_relation,
+                    combined_row,
+                ):
+                    joined_rows.append(combined_row)
+
+        return Relation(
+            left_relation.name,
+            combined_attributes,
+            joined_rows,
+        )
+
+    def evaluate_rename(self, expression: Rename) -> Relation:
+        relation = self.evaluate(expression.expression)
+
+        new_relation_name = expression.new_name
+        attribute_renames = expression.attribute_renames
+
+        renamed_attributes = []
+
+        for attribute in relation.attributes:
+            renamed_attributes.append(
+                Attribute(
+                    new_relation_name,
+                    attribute_renames.get(attribute.name, attribute.name),
+                )
+            )
+
+        return Relation(
+            new_relation_name,
+            renamed_attributes,
+            relation.rows,
         )
 
     def check_union_compatibility(
@@ -337,3 +443,11 @@ class Evaluator:
                 )
 
             seen_attributes.add(qualified_name)
+
+def evaluate_condition_on_row(
+    condition: Condition,
+    relation: Relation,
+    row: Row,
+) -> bool:
+    evaluator = Evaluator(database=None)
+    return evaluator.evaluate_condition(condition, relation, row)

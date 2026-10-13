@@ -9,6 +9,7 @@ from src.parser.ast import (
     Comparison,
     ComparisonOperator,
     Condition,
+    Distinct,
     Expression,
     Join,
     Not,
@@ -38,6 +39,7 @@ class Parser:
     def parse(self) -> ASTNode:
         if (
             self.check(TokenType.IDENTIFIER)
+            and not self.check_keyword("distinct")
             and self.peek_next().type == TokenType.LPAREN
         ):
             result = self.parse_relation_definition()
@@ -107,6 +109,11 @@ class Parser:
 
     def parse_primary_expression(self) -> Expression:
         if (
+            self.check_keyword("distinct")
+            and self.peek_next().type == TokenType.LPAREN
+        ):
+            return self.parse_distinct_expression()
+        if (
             self.check_keyword("select")
             and self.peek_next().type == TokenType.LBRACKET
         ):
@@ -138,6 +145,16 @@ class Parser:
             f"Expected expression, but found {token.type},"
             f'at line {token.position.line}, column {token.position.column}'
         )
+
+    def parse_distinct_expression(self) -> Expression:
+        self.match_keyword("distinct")
+        self.expect(TokenType.LPAREN)
+
+        expression = self.parse_expression()
+
+        self.expect(TokenType.RPAREN)
+
+        return Distinct(expression=expression)
 
     def parse_sort_expression(self) -> Expression:
         self.match_keyword("sort")
@@ -415,7 +432,10 @@ class Parser:
         )
 
     def check_keyword(self, keyword: str) -> bool:
-        return self.peek().type == TokenType.IDENTIFIER and self.peek().value == keyword
+        return (
+            self.peek().type == TokenType.IDENTIFIER
+            and self.peek().value.lower() == keyword.lower()
+        )
 
     def match_keyword(self, keyword: str) -> bool:
         if self.check_keyword(keyword):
@@ -443,3 +463,21 @@ class Parser:
         }
 
         return names.get(token_type, token_type.name.lower())
+
+
+def parse_condition_text(text: str) -> Condition:
+    from src.lexer.tokenizer import Tokenizer
+
+    tokens = Tokenizer(text).tokenize()
+    parser = Parser(tokens)
+
+    condition = parser.parse_condition()
+
+    if not parser.check(TokenType.EOF):
+        token = parser.peek()
+        raise ParseError(
+            f"Unexpected token {token.type} at "
+            f"line {token.position.line}, column {token.position.column}"
+        )
+
+    return condition

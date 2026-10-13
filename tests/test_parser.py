@@ -9,6 +9,7 @@ from src.parser.ast import (
     BooleanOperator,
     Comparison,
     ComparisonOperator,
+    Distinct,
     Join,
     Not,
     NumberLiteral,
@@ -562,3 +563,27 @@ def test_empty_projection_reports_clear_syntax_error():
     assert "found ']'" in message
     assert "line 1" in message
     assert "column 9" in message
+
+
+def test_parse_distinct_expression():
+    tokens = Tokenizer("distinct(Employees)").tokenize()
+    result = Parser(tokens).parse()
+
+    assert result == Distinct(
+        expression=RelationReference("Employees")
+    )
+
+
+def test_parse_distinct_with_projection():
+    tokens = Tokenizer(
+        "distinct(project[Name](Employees))"
+    ).tokenize()
+
+    result = Parser(tokens).parse()
+
+    assert result == Distinct(
+        expression=Project(
+            attributes=[AttributeReference("Name")],
+            expression=RelationReference("Employees"),
+        )
+    )

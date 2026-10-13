@@ -2,9 +2,10 @@ import pytest
 
 from src.engine.database import Database
 from src.engine.query_processor import QueryProcessor
-from src.engine.relation import Attribute, Row
-from src.lexer.tokenizer import LexicalError
-from src.parser.parser import ParseError
+from src.engine.relation import Attribute, Relation, Row
+from src.lexer.tokenizer import LexicalError, Tokenizer
+from src.parser.ast import Expression
+from src.parser.parser import ParseError, Parser
 
 
 @pytest.fixture
@@ -74,6 +75,7 @@ Charlie
 
     assert result.rows == [
         Row(["Alice"]),
+        Row(["Bob"]),
         Row(["Bob"]),
         Row(["Charlie"]),
     ]
@@ -156,7 +158,7 @@ def test_query_with_invalid_character(processor):
         processor.execute("project[Name](@Member)")
 
 
-def test_projection_removes_duplicate_rows(processor):
+def test_projection_preserves_duplicate_rows(processor):
     processor.execute(
         """Member(Id, Place) = {
 1, Ottawa
@@ -170,7 +172,11 @@ def test_projection_removes_duplicate_rows(processor):
     assert result.attributes == [
         Attribute("Member", "Place"),
     ]
-    assert len(result.rows) == 2
+    assert result.rows == [
+    Row(["Ottawa"]),
+    Row(["Ottawa"]),
+    Row(["Toronto"]),
+]
     assert {tuple(row.values) for row in result.rows} == {
         ("Ottawa",),
         ("Toronto",),
@@ -197,7 +203,7 @@ def test_projection_preserves_requested_attribute_order(processor):
     ]
 
 
-def test_union_removes_duplicate_rows(processor):
+def test_union_preserves_duplicate_rows(processor):
     processor.execute(
         """A(Name) = {
 Alice
@@ -214,7 +220,12 @@ Charlie
 
     result = processor.execute("A union B")
 
-    assert len(result.rows) == 3
+    assert result.rows == [
+        Row(["Alice"]),
+        Row(["Bob"]),
+        Row(["Bob"]),
+        Row(["Charlie"]),
+    ]
     assert {tuple(row.values) for row in result.rows} == {
         ("Alice",),
         ("Bob",),
@@ -642,4 +653,50 @@ def test_join_allows_renamed_relation(processor):
     assert [row.values for row in result.rows] == [
         [1, "Alice", 1, "Alice"],
         [2, "Bob", 2, "Bob"],
+    ]
+
+
+def test_projection_bag_semantics_with_distinct():
+    database = Database()
+
+    database.add_relation(
+        Relation(
+            "Employees",
+            [
+                Attribute("Employees", "Name"),
+                Attribute("Employees", "Department"),
+            ],
+            [
+                Row(["Alice", "IT"]),
+                Row(["Alice", "HR"]),
+                Row(["Bob", "IT"]),
+            ],
+        )
+    )
+
+    from src.engine.evaluator import Evaluator
+
+    evaluator = Evaluator(database)
+
+    bag_query = "project[Name](Employees)"
+    distinct_query = "distinct(project[Name](Employees))"
+
+    bag_ast = Parser(Tokenizer(bag_query).tokenize()).parse()
+    distinct_ast = Parser(Tokenizer(distinct_query).tokenize()).parse()
+
+    assert isinstance(bag_ast, Expression)
+    assert isinstance(distinct_ast, Expression)
+
+    bag_result = evaluator.evaluate(bag_ast)
+    distinct_result = evaluator.evaluate(distinct_ast)
+
+    assert bag_result.rows == [
+        Row(["Alice"]),
+        Row(["Alice"]),
+        Row(["Bob"]),
+    ]
+
+    assert distinct_result.rows == [
+        Row(["Alice"]),
+        Row(["Bob"]),
     ]
