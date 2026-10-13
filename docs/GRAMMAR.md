@@ -59,13 +59,15 @@
 
 - RENAME_EXPR ::= "rename" "[" IDENT "]" "(" EXPR ")"
 
+- DISTINCT_EXPR ::= "distinct" "(" EXPR ")"
+
 - EXPR ::= SET_EXPR
 
 - SET_EXPR ::= PRODUCT_EXPR { ( "union" | "intersect" | "minus"  ) PRODUCT_EXPR }
 
 - PRODUCT_EXPR ::= PRIMARY_EXPR { ( "times" | "join" "[" CONDITION "]" ) PRIMARY_EXPR }
 
-- PRIMARY_EXPR ::= IDENT | PROJECT_EXPR | SELECT_EXPR | RENAME_EXPR | SORT_EXPR | "(" EXPR ")"
+- PRIMARY_EXPR ::= IDENT | PROJECT_EXPR | SELECT_EXPR | RENAME_EXPR | SORT_EXPR | DISTINCT_EXPR | "(" EXPR ")"
 
 - SORT_DIRECTION ::= "asc" | "desc"
 
@@ -105,11 +107,11 @@ Relational operators follow the following precedence, from highest to lowest:
 
 | Precedence | Operators | Associativity | Grammar Rule |
 |---|---|---|---|
-| 1 (highest) | `select`, `project`, `rename`, `sort` | N/A | `PRIMARY_EXPR` |
+| 1 (highest) | `select`, `project`, `rename`, `sort`, `distinct` | N/A | `PRIMARY_EXPR` |
 | 2 | `times`, `join[condition]` | Left | `PRODUCT_EXPR` |
 | 3 (lowest) | `union`, `intersect`, `minus` | Left | `SET_EXPR` |
 
-The unary operators `select`, `project`, `rename`, and `sort` have their scope explicitly determined by the expression enclosed in their parentheses, so associativity does not apply to them.
+The unary operators `select`, `project`, `rename`, `sort`, and `distinct` have their scope explicitly determined by the expression enclosed in their parentheses, so associativity does not apply to them.
 
 The `PRODUCT_EXPR` rule gives `times` and `join` higher precedence than the set operators. The `SET_EXPR` rule places `union`, `intersect`, and `minus` at the lower precedence level. Repetition using `{ ... }` causes operators at the same level to be grouped from left to right by the parser.
 
@@ -245,7 +247,7 @@ SET_EXPR ::= PRODUCT_EXPR { ( "union" | "intersect" | "minus" ) PRODUCT_EXPR }
 
 PRODUCT_EXPR ::= PRIMARY_EXPR { ( "times" | "join" "[" CONDITION "]" ) PRIMARY_EXPR }
 
-PRIMARY_EXPR ::= IDENT | PROJECT_EXPR | SELECT_EXPR | RENAME_EXPR | SORT_EXPR | "(" EXPR ")"
+PRIMARY_EXPR ::= IDENT | PROJECT_EXPR | SELECT_EXPR | RENAME_EXPR | SORT_EXPR | DISTINCT_EXPR | "(" EXPR ")"
 
 The `SET_EXPR` rule places `union`, `intersect`, and `minus` at the same precedence level. These operators are parsed from left to right, making them left-associative.
 
@@ -357,7 +359,7 @@ is constructed as:
 
 When `parsePrimaryExpr()` encounters an opening parenthesis, it consumes the `(` and recursively calls `parseExpr()` to parse the expression inside. It then requires a matching `)`. This allows parentheses to override normal operator precedence and supports nested parenthesized expressions.
 
-The parser uses token lookahead to inspect the current token and determine which grammar production should be parsed. Tokens are consumed as they are successfully matched. For example, `parsePrimaryExpr()` uses the current token to determine whether it should parse an identifier, selection, projection, rename operation, sort operation, or parenthesized expression.
+The parser uses token lookahead to inspect the current token and determine which grammar production should be parsed. Tokens are consumed as they are successfully matched. For example, `parsePrimaryExpr()` uses the current token to determine whether it should parse an identifier, selection, projection, rename operation, sort operation, distinct operation, or parenthesized expression.
 
 If the parser encounters a token that does not match what is required by the grammar, it reports a syntax error identifying the unexpected token and, when possible, the expected token or construct. For example:
 

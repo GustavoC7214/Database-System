@@ -7,6 +7,7 @@ from src.parser.ast import (
     BooleanOperator,
     Comparison,
     ComparisonOperator,
+    Distinct,
     Join,
     Not,
     NumberLiteral,
@@ -117,6 +118,8 @@ def format_expression(node: ASTNode) -> str:
     elif isinstance(node, Join):
         condition = format_inline(node.condition)
         return f"Join(cond={condition})"
+    elif isinstance(node, Distinct):
+        return "Distinct"
 
 
     raise TypeError(f"Unsupported inline AST node: {type(node).__name__}")
@@ -125,7 +128,7 @@ def format_expression(node: ASTNode) -> str:
 def get_children(node: ASTNode) -> list[ASTNode]:
     if isinstance(node, RelationReference):
         return []
-    elif isinstance(node, (Select, Project, Rename, Sort)):
+    elif isinstance(node, (Select, Project, Rename, Sort, Distinct)):
         return [node.expression]
     elif isinstance(node, (BinaryExpression, Join)):
         return [node.left, node.right]

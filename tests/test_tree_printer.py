@@ -122,3 +122,14 @@ def test_sort_nested_tree():
     └── Relation(Employees)"""
 
     assert tree == expected
+
+
+def test_distinct_tree():
+    query = "distinct(project[Name](Employees))"
+    ast = Parser(Tokenizer(query).tokenize()).parse()
+
+    result = print_tree(ast)
+
+    assert "Distinct" in result
+    assert "Project(attrs=[Name])" in result
+    assert "Relation(Employees)" in result
