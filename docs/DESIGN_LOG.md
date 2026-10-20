@@ -525,3 +525,84 @@ When the join input sizes were fixed at 1,000 tuples each, increasing the match 
 AI assistance helped organize the benchmark runner, CSV output, scaling calculation, plot, and report. I checked the benchmark results against the expected comparison counts and output sizes.
 
 During report preparation, I distinguished measured execution times from the extrapolated million-tuple estimate. I also documented the difference between selection's linear tuple-examination count and the approximately quadratic wall time observed in the current implementation.
+
+## October 9th 2026 - October 20th 2026  — Project 2, Module 1: Storage Engine and Buffer Pool
+
+### Goal
+
+Implement a disk-based storage engine with fixed-size pages, slotted-page record storage, heap-file directories, buffer management, table metadata, CSV loading, and command-line operations.
+
+### What I Did
+
+I implemented the storage engine in `src/storage/`, including:
+
+- DiskManager for reading, writing, and allocating 4096-byte pages.
+- SlottedPage for storing variable-length records and managing record slots.
+- DirectoryPage for tracking heap-file data pages and available space.
+- HeapFile for inserting, retrieving, deleting, and scanning records.
+- BufferPool with configurable LRU and CLOCK replacement policies.
+- Record encoding and decoding for INT and VARCHAR fields.
+- Schema parsing, catalog metadata, and CSV loading.
+- Storage CLI commands for table creation, loading, scanning, layout inspection, and trace execution.
+
+### Design Decisions
+
+I used 4096-byte pages with little-endian binary layouts.
+
+Records are stored in slotted pages. Each slot occupies four bytes and records grow backward from the end of the page.
+
+Deleted slots are marked as dead and are not reused. Deleted record space is not reclaimed.
+
+Heap files use directory pages to track data-page IDs and available space. The insertion algorithm uses first-fit placement.
+
+The buffer pool tracks page pins, dirty pages, cache hits, misses, evictions, disk reads, and disk writes.
+
+I implemented both LRU and CLOCK replacement policies to compare their behaviour under different workloads.
+
+### Problems / AI Assistance
+
+AI assistance was used to review the storage modules, identify edge cases, develop regression tests, and organize the experimental benchmarks.
+
+During testing, I corrected several issues:
+
+- Oversized records now produce explicit validation errors.
+- Directory entries reject invalid free-space values.
+- Heap-file record access validates that the requested page belongs to the heap.
+- Invalid buffer-pool page requests no longer modify CLOCK replacement state.
+- Malformed CSV input produces a descriptive error.
+- The layout command rejects directory pages when a data page is required.
+
+I verified the corrections using focused tests and the complete regression suite.
+
+### Testing
+
+After completing the implementation and regression review, I ran:
+
+`python3 -m pytest -q`
+
+Result: 485 tests passed.
+
+I also ran:
+
+`python3 -m ruff check .`
+
+Result: All checks passed.
+
+### Experiments
+
+I measured theoretical and actual slotted-page capacities for three record schemas. All three matched:
+
+- INT record: 511 records per page.
+- Mixed INT/VARCHAR record: 240 records per page.
+- Large VARCHAR record: 37 records per page.
+
+I compared LRU and CLOCK using five access traces and buffer sizes of 4, 16, 64, and 256 frames, completing 40 benchmark runs.
+
+LRU performed slightly better on the hot-set trace with 16 frames, while CLOCK performed slightly better on the random trace with 16 and 64 frames.
+
+I also scanned a heap containing 500 data pages using buffer sizes of 2, 8, and 64 frames. Both replacement policies produced 500 disk reads for every scan. Increasing the buffer size reduced evictions but did not reduce reads.
+
+The benchmark results are saved in:
+
+- `experiments/m1/results/buffer_benchmarks.csv`
+- `experiments/m1/results/sequential_scan.csv`

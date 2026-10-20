@@ -11,3 +11,9 @@ __pycache__/
 
 # macOS files
 .DS_Store
+
+# Generated storage engine database files
+*.db
+
+# Temporary trace and experiment outputs
+trace_pages.db

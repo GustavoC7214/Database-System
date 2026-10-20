@@ -1,0 +1,7 @@
+policy,frames,records,hits,misses,evictions,reads,writes
+lru,2,500,1,500,499,500,0
+lru,8,500,1,500,493,500,0
+lru,64,500,1,500,437,500,0
+clock,2,500,1,500,499,500,0
+clock,8,500,1,500,493,500,0
+clock,64,500,1,500,437,500,0
