@@ -632,7 +632,7 @@ Several limitations should be considered when interpreting the results.
 
 4. **External-sort model differences:** Theoretical initial-run and merge-pass counts use idealized page-based formulas. Actual counts were recorded directly from the Sort operator and may differ because of buffer allocation, tuple serialization, and temporary-page packing.
 
-5. **Predicted hash overflow:** Overflow counts were calculated using the implementation's partitioning and memory-limit logic rather than captured as runtime overflow events.
+5. **Hash-partition overflow measurement:** Hash-partition overflow counts were captured directly from runtime instrumentation in the Grace Hash Join operator. Predicted overflow counts were also calculated independently using the partitioning function and memory-limit formula. The observed and predicted counts agreed for the tested configurations. However, these measurements do not necessarily generalize to different data distributions, partitioning strategies, or workloads.
 
 6. **Shared-buffer monitoring:** The memory stress test measured shared page-frame occupancy, not total process memory or all Python object allocations.
 

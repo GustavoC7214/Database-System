@@ -606,3 +606,99 @@ The benchmark results are saved in:
 
 - `experiments/m1/results/buffer_benchmarks.csv`
 - `experiments/m1/results/sequential_scan.csv`
+
+## October 20th 2026 - October 28th 2026 — Project 2, Module 2: Execution Engine
+
+### Goal
+
+Implement a disk-backed relational execution engine that consumes physical plans in JSON format, executes them through a common iterator interface, and respects a configurable shared memory budget.
+
+### What I Did
+
+I implemented the execution engine in `src/execution/`, including:
+
+- The iterator interface with `open()`, `next()`, `close()`, and `counters()`.
+- Sequential scanning, filtering, projection, and limiting.
+- External merge sorting using disk-backed temporary runs.
+- Sort-based and hash-based duplicate elimination and grouping.
+- Block Nested Loop Join, Sort Merge Join, and Grace Hash Join.
+- Set operations, including union, intersection, and difference.
+- Physical-plan validation, operator construction, and execution.
+- A shared page manager for buffer reservations and temporary-page I/O.
+- Command-line support for executing and tracing physical plans.
+
+### Design Decisions
+
+I used a pull-based iterator model so operators request tuples from their children rather than materializing every intermediate result.
+
+Blocking operations use temporary files when their working data exceeds the available memory.
+
+External Merge Sort generates sorted runs and merges them using a bounded number of input buffers.
+
+Block Nested Loop Join processes the outer relation in blocks and repeatedly scans the inner relation.
+
+Sort Merge Join handles duplicate join keys, including groups that cannot fit entirely in memory.
+
+Grace Hash Join partitions both relations before probing. If a build-side partition exceeds the available memory, the implementation falls back to a disk-backed nested-loop approach.
+
+The shared page manager tracks reserved, cached, and pinned frames to help enforce the configured buffer budget.
+
+### Problems / AI Assistance
+
+AI assistance was used to review the execution-engine architecture, develop regression tests, interpret experimental results, and organize the reports.
+
+**1. CSV benchmark-output regression**
+
+During changes to the hash-skew experiment's CSV output, an earlier suggested modification changed the CSV writer configuration but accidentally omitted the calls responsible for writing the header and data rows.
+
+I detected this problem through static analysis with Ruff, which identified unused variables. I inspected the affected code, restored the missing writer calls, and reran the experiment to verify that the expected CSV results were generated.
+
+This demonstrated why even small AI-assisted changes to experimental code require validation.
+
+**2. Predicted versus measured hash-partition overflow**
+
+An earlier version of the skew experiment calculated partition-overflow counts from the partitioning function and memory-limit formula rather than recording actual overflow events during execution.
+
+Reviewing the experiment against the assignment requirements revealed that predicted values alone did not adequately demonstrate what the implementation actually did.
+
+I added runtime instrumentation to Grace Hash Join to record partition sizes and overflow-fallback events. I then updated the experiment to compare the predicted counts against the observed counts.
+
+The predicted and observed overflow counts agreed across all eight tested configurations.
+
+This improved the reliability of the experimental evidence and distinguished theoretical expectations from observed execution behaviour.
+
+### Testing
+
+The complete automated test suite passed:
+
+`python3 -m pytest -q`
+
+Result: 733 tests passed.
+
+Static analysis and formatting checks also passed:
+
+`python3 -m ruff check .`
+
+`python3 -m ruff format --check .`
+
+### Experiments
+
+I completed five required experiments:
+
+1. **Join costs:** Compared measured page I/O for the three join algorithms across four buffer budgets and three relation sizes.
+2. **External sorting:** Compared theoretical and observed initial-run counts, merge passes, and page I/O.
+3. **Join crossover:** Measured how join-algorithm performance changed with memory availability and relation size, generating comparison plots.
+4. **Hash skew:** Compared uniform and skewed join-key distributions, recording actual partition sizes, overflow events, output cardinalities, and I/O costs.
+5. **Memory stress:** Successfully sorted an 80-page relation with a four-frame shared buffer budget, confirming that no reserved or pinned frames remained after execution.
+
+The experiment scripts and results are stored in `experiments/m2/`.
+
+### Results and Design Observations
+
+Grace Hash Join performed well when partitions fit within the available memory, but partition overflow caused substantial additional I/O.
+
+External sorting required more initial runs than predicted by the idealized textbook formula in some configurations because the implementation's actual buffer allocation and temporary-page packing differed from the theoretical model.
+
+The memory stress test completed successfully with a maximum observed shared-frame occupancy of four frames.
+
+The implementation and experiments were committed as `78741d9` and pushed to the repository's `develop` branch.
