@@ -1,0 +1,8 @@
+configuration,target_data_pages,actual_data_pages,frames,rows,initial_runs_theoretical,merge_passes_theoretical,total_passes_theoretical,initial_runs_actual,intermediate_merge_passes_actual,final_merge_passes_actual,merge_passes_actual,total_passes_actual,input_page_reads,temp_page_reads,temp_page_writes,total_page_reads,total_page_writes,total_page_io,comparisons,elapsed_seconds
+n8_b4,8,8,4,323,2,1,2,4,1,1,2,3,11,14,14,25,14,39,0,0.005156
+n20_b4,20,20,4,875,5,2,3,10,2,1,3,4,23,56,56,79,56,135,0,0.016881
+n40_b4,40,40,4,1795,10,3,4,21,2,1,3,4,43,118,118,161,118,279,0,0.038109
+n80_b4,80,80,4,3635,20,3,4,42,3,1,4,5,83,332,332,415,332,747,0,0.108681
+n80_b8,80,80,8,3635,10,2,3,14,1,1,2,3,83,166,166,249,166,415,0,0.044715
+n80_b16,80,80,16,3635,5,1,2,6,0,1,1,2,83,83,83,166,83,249,0,0.031454
+n80_b32,80,80,32,3635,3,1,2,3,0,1,1,2,83,83,83,166,83,249,0,0.033086

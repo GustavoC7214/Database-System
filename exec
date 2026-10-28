@@ -1,0 +1,7 @@
+#!/usr/bin/env python3
+"""Entry point for Module 2 physical-plan execution."""
+
+from src.execution.cli import main
+
+if __name__ == "__main__":
+    raise SystemExit(main())

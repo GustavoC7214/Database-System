@@ -1,4 +1,3 @@
-
 from pathlib import Path
 
 PAGE_SIZE = 4096
@@ -30,6 +29,21 @@ class DiskManager:
             raise OSError(f"Failed to read page {page_id}")
 
         return data
+
+    def read_page_into(self, page_id: int, buffer: bytearray) -> None:
+        """Read a disk page directly into an existing buffer."""
+        if page_id < 0 or page_id >= self.page_count():
+            raise ValueError(f"Invalid page ID: {page_id}")
+
+        if len(buffer) != PAGE_SIZE:
+            raise ValueError("Buffer must be exactly 4096 bytes")
+
+        with self.file_path.open("rb") as file:
+            file.seek(page_id * PAGE_SIZE)
+            bytes_read = file.readinto(buffer)
+
+        if bytes_read != PAGE_SIZE:
+            raise OSError(f"Failed to read page {page_id}")
 
     def write_page(self, page_id: int, data: bytes) -> None:
         if page_id < 0 or page_id > self.page_count():

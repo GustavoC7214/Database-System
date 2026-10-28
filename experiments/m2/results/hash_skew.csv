@@ -1,0 +1,9 @@
+distribution,frames,left_rows,right_rows,output_rows,partition_count,largest_left_partition_rows,largest_right_partition_rows,largest_left_partition_pages,largest_right_partition_pages,predicted_overflow_partitions,actual_overflow_partitions,actual_largest_left_partition_rows,actual_largest_right_partition_rows,actual_largest_left_partition_pages,actual_largest_right_partition_pages,input_page_reads,temp_page_reads,temp_page_writes,total_page_io,io_per_output_row,comparisons,elapsed_seconds
+uniform,4,500,250,250,3,178,93,4,2,3,3,178,93,4,2,21,1030,18,1069,4.276,41822,0.05576
+uniform,8,500,250,250,7,81,45,2,1,0,0,81,45,2,1,21,33,21,75,0.3,250,0.008539
+uniform,16,500,250,250,15,54,29,2,1,0,0,54,29,2,1,21,43,31,95,0.38,250,0.011224
+uniform,32,500,250,250,31,23,13,1,1,0,0,23,13,1,1,21,74,62,157,0.628,250,0.016226
+skewed,4,500,250,20050,3,305,160,7,4,3,3,305,160,7,4,21,1541,19,1581,0.078853,57560,0.07482
+skewed,8,500,250,20050,7,246,122,5,3,1,1,246,122,6,3,21,773,22,816,0.040698,30140,0.047118
+skewed,16,500,250,20050,15,224,111,5,3,0,0,224,111,5,3,21,48,36,105,0.005237,250,0.013782
+skewed,32,500,250,20050,31,209,105,5,3,0,0,209,105,5,3,21,80,68,169,0.008429,250,0.018276
