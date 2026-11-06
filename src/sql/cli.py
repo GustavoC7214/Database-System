@@ -3,7 +3,7 @@
 import argparse
 import json
 import sys
-from dataclasses import asdict
+from dataclasses import fields, is_dataclass
 from pathlib import Path
 
 from src.sql import ast
@@ -35,7 +35,7 @@ def build_parser() -> argparse.ArgumentParser:
     parse.add_argument(
         "--explain",
         action="store_true",
-        help="Display the parsed AST as JSON",
+        help="Display the parsed AST as an indented tree",
     )
 
     check = commands.add_parser(
@@ -87,25 +87,51 @@ def _queries(source: str) -> tuple[ast.Query, ...]:
     for statement in statements:
         if not isinstance(statement, (ast.Select, ast.SetOperation)):
             raise TypeError(
-                "SQL check and compile currently support SELECT "
-                "queries only; CREATE TABLE and INSERT are not "
-                "supported by these commands."
+                "error: syntax: check and compile currently support "
+                "SELECT queries only at line 1, column 1"
             )
 
     return statements
 
 
+def _print_ast_tree(value: object, indent: int = 0) -> None:
+    """Print an indented representation of the parsed SQL AST."""
+    prefix = "  " * indent
+
+    if isinstance(value, (tuple, list)):
+        for item in value:
+            _print_ast_tree(item, indent)
+        return
+
+    if is_dataclass(value) and not isinstance(value, type):
+        print(f"{prefix}{type(value).__name__}")
+
+        for field_info in fields(value):
+            field_value = getattr(value, field_info.name)
+
+            if isinstance(field_value, (tuple, list)):
+                if field_value:
+                    print(f"{prefix}  {field_info.name}:")
+                    _print_ast_tree(field_value, indent + 2)
+            elif is_dataclass(field_value) and not isinstance(field_value, type):
+                print(f"{prefix}  {field_info.name}:")
+                _print_ast_tree(field_value, indent + 2)
+            elif field_value is not None:
+                print(f"{prefix}  {field_info.name}: {field_value}")
+
+        return
+
+    print(f"{prefix}{value}")
+
+
 def _parse_command(source: str, explain: bool) -> None:
+    """Parse SQL and optionally print an indented syntax tree."""
     statements = parse_sql(source)
 
     if explain:
-        print(
-            json.dumps(
-                [asdict(statement) for statement in statements],
-                indent=2,
-                ensure_ascii=False,
-            )
-        )
+        for index, statement in enumerate(statements, start=1):
+            print(f"Statement {index}:")
+            _print_ast_tree(statement, 1)
     else:
         print(f"OK: {len(statements)} SQL statements parsed.")
 
@@ -154,18 +180,21 @@ def main(argv: list[str] | None = None) -> int:
 
         if not db_path.is_dir():
             print(
-                f"error: input: Database directory does not exist: {db_path}",
+                "error: schema: "
+                f"Database directory does not exist: {db_path} "
+                "at line 1, column 1",
                 file=sys.stderr,
             )
-            return 2
+            return 1
 
         if not (db_path / "catalog.db").is_file():
             print(
-                f"error: input: Database catalog does not exist: "
-                f"{db_path / 'catalog.db'}",
+                "error: schema: "
+                f"Database catalog does not exist: {db_path / 'catalog.db'} "
+                "at line 1, column 1",
                 file=sys.stderr,
             )
-            return 2
+            return 1
 
         catalog = SchemaCatalog.from_directory(args.db)
 
@@ -178,14 +207,22 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
     except (OSError, UnicodeError) as exc:
-        print(f"error: input: {exc}", file=sys.stderr)
-        return 2
-
-    except (ValueError, TypeError) as exc:
-        print(str(exc), file=sys.stderr)
+        print(
+            f"error: schema: {exc} at line 1, column 1",
+            file=sys.stderr,
+        )
         return 1
 
-    return 2
+    except (ValueError, TypeError) as exc:
+        message = str(exc)
+
+        if not message.startswith("error: "):
+            message = f"error: schema: {message} at line 1, column 1"
+
+        print(message, file=sys.stderr)
+        return 1
+
+    return 1
 
 
 if __name__ == "__main__":

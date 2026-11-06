@@ -702,3 +702,24 @@ External sorting required more initial runs than predicted by the idealized text
 The memory stress test completed successfully with a maximum observed shared-frame occupancy of four frames.
 
 The implementation and experiments were committed as `78741d9` and pushed to the repository's `develop` branch.
+
+## Module 3 — SQL Front End Specification Review (2026-11-05)
+
+The professor confirmed by email that the seven translation examples in
+Section 5 are the authoritative logical-plan JSON schema and that no
+separate schema or sample catalog will be posted. The Module 1 catalog
+is reused for semantic analysis.
+
+The SQL compiler emits bag-preserving projections, explicit `distinct`
+for ordinary `SELECT DISTINCT`, and no redundant `distinct` above a
+`group_by` result.
+
+A repeated aggregate is computed once, with positional projection output
+metadata retaining multiple requested aliases.
+
+Added regression tests for grouped DISTINCT, implicit aggregate grouping,
+and repeated aggregate aliases.
+
+The `ORDER BY` nonselected-column case remains a documented plan-shape
+ambiguity because Section 5 requires sort above projection without
+defining a hidden sort-key representation.

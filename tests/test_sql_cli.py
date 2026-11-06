@@ -84,7 +84,7 @@ def test_parse_query_success(capsys):
     assert captured.err == ""
 
 
-def test_parse_explain_json(capsys):
+def test_parse_explain_indented_tree(capsys):
     result = main(
         [
             "parse",
@@ -95,12 +95,16 @@ def test_parse_explain_json(capsys):
     )
 
     captured = capsys.readouterr()
-    parsed = json.loads(captured.out)
 
     assert result == 0
-    assert len(parsed) == 1
-    assert parsed[0]["source"]["name"] == "Emp"
-    assert parsed[0]["columns"][0]["expression"]["name"] == "name"
+    assert captured.err == ""
+    assert "Statement 1:" in captured.out
+    assert "  Select" in captured.out
+    assert "    source:" in captured.out
+    assert "      Table" in captured.out
+    assert "        name: Emp" in captured.out
+    assert "Column" in captured.out
+    assert "name: name" in captured.out
 
 
 def test_parse_multiple_statements(capsys):
@@ -162,8 +166,9 @@ def test_missing_sql_file(capsys, tmp_path):
 
     captured = capsys.readouterr()
 
-    assert result == 2
-    assert "error: input:" in captured.err
+    assert result == 1
+    assert "error: schema:" in captured.err
+    assert "at line 1, column 1" in captured.err
 
 
 def test_check_valid_query(catalog_loader, capsys):
@@ -408,7 +413,9 @@ def test_check_missing_database_directory(tmp_path, capsys):
 
     captured = capsys.readouterr()
 
-    assert result == 2
+    assert result == 1
+    assert "error: schema:" in captured.err
+    assert "at line 1, column 1" in captured.err
     assert captured.out == ""
     assert "Database directory does not exist" in captured.err
 
@@ -430,6 +437,65 @@ def test_compile_missing_catalog_file(tmp_path, capsys):
 
     captured = capsys.readouterr()
 
-    assert result == 2
+    assert result == 1
+    assert "error: schema:" in captured.err
+    assert "at line 1, column 1" in captured.err
     assert captured.out == ""
     assert "Database catalog does not exist" in captured.err
+
+
+@pytest.mark.parametrize(
+    "query, category",
+    [
+        ("SELECT FROM Emp;", "syntax"),
+        ("SELECT missing FROM Emp;", "name"),
+        ("SELECT did FROM Emp, Dept;", "ambiguity"),
+        ("SELECT age FROM Emp WHERE age = '30';", "type"),
+        ("SELECT SUM(name) FROM Emp;", "aggregate"),
+    ],
+)
+def test_cli_error_format(
+    catalog_loader,
+    capsys,
+    query,
+    category,
+):
+    result = main(
+        [
+            "check",
+            "--db",
+            "fake-db",
+            "--query",
+            query,
+        ]
+    )
+
+    captured = capsys.readouterr()
+
+    assert result == 1
+    assert captured.out == ""
+    assert captured.err.startswith(f"error: {category}:")
+    assert " at line " in captured.err
+    assert ", column " in captured.err
+
+
+def test_cli_missing_catalog_error_format(tmp_path, capsys):
+    db_dir = tmp_path / "empty"
+    db_dir.mkdir()
+
+    result = main(
+        [
+            "check",
+            "--db",
+            str(db_dir),
+            "--query",
+            "SELECT * FROM Emp;",
+        ]
+    )
+
+    captured = capsys.readouterr()
+
+    assert result == 1
+    assert captured.out == ""
+    assert captured.err.startswith("error: schema:")
+    assert "at line 1, column 1" in captured.err

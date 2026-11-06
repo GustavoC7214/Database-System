@@ -621,3 +621,101 @@ def test_duplicate_aggregate_alias_in_derived_table(compiler):
 
     # The derived table must expose an output named n.
     assert "n" in inner["columns"] or "n" in inner.get("outputs", [])
+
+
+def test_grouped_distinct_does_not_add_redundant_node(compiler):
+    plan = compile_one(
+        compiler,
+        "SELECT DISTINCT did, COUNT(*) AS n FROM Emp GROUP BY did;",
+    )
+    assert plan["op"] == "project"
+    assert plan["child"]["op"] == "group_by"
+    assert plan["child"]["keys"] == ["Emp.did"]
+
+
+def test_implicit_grouping_distinct_does_not_add_redundant_node(compiler):
+    plan = compile_one(compiler, "SELECT DISTINCT COUNT(*) AS n FROM Emp;")
+    assert plan["op"] == "project"
+    assert plan["child"]["op"] == "group_by"
+
+
+def test_multiple_aliases_of_same_aggregate_keep_positions(compiler):
+    plan = compile_one(
+        compiler,
+        "SELECT COUNT(*) AS total, COUNT(*) AS n FROM Emp;",
+    )
+    assert plan["columns"] == ["total", "total"]
+    assert plan["outputs"] == ["total", "n"]
+    assert plan["aliases"] == {"n": "total"}
+
+
+def test_four_table_comma_join_chain(compiler):
+    plan = compile_one(
+        compiler,
+        "SELECT e.name, d.title, o.city, m.name "
+        "FROM Emp e, Dept d, Office o, Emp m "
+        "WHERE e.did = d.did AND d.did = o.did "
+        "AND e.mgr = m.eid;",
+    )
+
+    assert plan["op"] == "project"
+    assert plan["columns"] == [
+        "e.name",
+        "d.title",
+        "o.city",
+        "m.name",
+    ]
+
+    where = plan["child"]
+    assert where["op"] == "select"
+    assert "e.did = d.did" in where["condition"]
+    assert "d.did = o.did" in where["condition"]
+    assert "e.mgr = m.eid" in where["condition"]
+
+    root = where["child"]
+    assert root["op"] == "cross"
+    assert root["right"]["to"] == "m"
+
+    third = root["left"]
+    assert third["op"] == "cross"
+    assert third["right"]["to"] == "o"
+
+    second = third["left"]
+    assert second["op"] == "cross"
+    assert second["left"]["to"] == "e"
+    assert second["right"]["to"] == "d"
+
+
+def test_four_table_explicit_join_chain(compiler):
+    plan = compile_one(
+        compiler,
+        "SELECT e.name, d.title, o.city, m.name "
+        "FROM Emp e "
+        "JOIN Dept d ON e.did = d.did "
+        "JOIN Office o ON d.did = o.did "
+        "JOIN Emp m ON e.mgr = m.eid;",
+    )
+
+    assert plan["op"] == "project"
+    assert plan["columns"] == [
+        "e.name",
+        "d.title",
+        "o.city",
+        "m.name",
+    ]
+
+    root = plan["child"]
+    assert root["op"] == "join"
+    assert root["condition"] == "e.mgr = m.eid"
+    assert root["right"]["to"] == "m"
+
+    third = root["left"]
+    assert third["op"] == "join"
+    assert third["condition"] == "d.did = o.did"
+    assert third["right"]["to"] == "o"
+
+    second = third["left"]
+    assert second["op"] == "join"
+    assert second["condition"] == "e.did = d.did"
+    assert second["left"]["to"] == "e"
+    assert second["right"]["to"] == "d"

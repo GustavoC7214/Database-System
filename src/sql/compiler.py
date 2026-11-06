@@ -369,21 +369,12 @@ class SQLCompiler:
                 else:
                     output_names.append(source_name)
 
-        # Preserve each output position, including repeated
-        # expressions with different aliases.
+        # A positional output list is needed when multiple aliases refer to
+        # the same aggregate; a mapping alone cannot represent both outputs.
         projection_aliases = {
             output: source
-            for output, source in zip(
-                output_names,
-                columns,
-                strict=True,
-            )
+            for output, source in zip(output_names, columns, strict=True)
             if output != source
-        }
-
-        # Preserve output aliases separately from input expressions.
-        projection_aliases = {
-            alias: source for alias, source in aliases.items() if alias != source
         }
 
         projected_names = {
@@ -446,13 +437,11 @@ class SQLCompiler:
             project["aliases"] = projection_aliases
             project["outputs"] = output_names
 
-        if projection_aliases:
-            project["aliases"] = projection_aliases
-
         plan = project
 
-        # DISTINCT applies to the projected output.
-        if query.distinct:
+        # Grouping already produces one row per group.
+        # Avoid a redundant DISTINCT above an aggregating query.
+        if query.distinct and not grouping:
             plan = {
                 "op": "distinct",
                 "child": plan,
