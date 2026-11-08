@@ -36,7 +36,9 @@ class Evaluator:
     def evaluate(self, expression: Expression) -> Relation:
         if isinstance(expression, RelationReference):
             if self.database is None:
-                raise ValueError("A database is required to evaluate relation references")
+                raise ValueError(
+                    "A database is required to evaluate relation references"
+                )
 
             relation = self.database.get_relation(expression.name)
 
@@ -45,7 +47,7 @@ class Evaluator:
                 attributes=relation.attributes.copy(),
                 rows=list(self.database.iter_rows(expression.name)),
             )
-        
+
         if isinstance(expression, Select):
             return self.evaluate_select(expression)
 
@@ -66,7 +68,7 @@ class Evaluator:
 
         if isinstance(expression, Rename):
             return self.evaluate_rename(expression)
-            
+
         raise NotImplementedError(
             f"Evaluation not implemented for {type(expression).__name__}"
         )
@@ -95,9 +97,7 @@ class Evaluator:
             index = self.resolve_attribute(attribute, relation)
 
             if index in column_indices:
-                raise ValueError(
-                    f"Duplicate projection attribute: {attribute.name}"
-                )
+                raise ValueError(f"Duplicate projection attribute: {attribute.name}")
 
             column_indices.append(index)
 
@@ -107,9 +107,7 @@ class Evaluator:
             values = [row.values[index] for index in column_indices]
             projected_rows.append(Row(values))
 
-        projected_attributes = [
-            relation.attributes[index] for index in column_indices
-        ]
+        projected_attributes = [relation.attributes[index] for index in column_indices]
 
         return Relation(
             relation.name,
@@ -163,17 +161,13 @@ class Evaluator:
         if expression.operator == BinaryOperator.INTERSECT:
             return self.evaluate_intersect(expression)
 
-        raise NotImplementedError(
-            f"Unsupported binary operator: {expression.operator}"
-        )
+        raise NotImplementedError(f"Unsupported binary operator: {expression.operator}")
 
     def evaluate_times(self, expression: BinaryExpression) -> Relation:
         left_relation = self.evaluate(expression.left)
         right_relation = self.evaluate(expression.right)
 
-        combined_attributes = (
-            left_relation.attributes + right_relation.attributes
-        )
+        combined_attributes = left_relation.attributes + right_relation.attributes
         self.check_attribute_collisions(combined_attributes)
 
         combined_rows = []
@@ -189,7 +183,6 @@ class Evaluator:
             combined_rows,
         )
 
-
     def evaluate_union(self, expression: BinaryExpression) -> Relation:
         left_relation = self.evaluate(expression.left)
         right_relation = self.evaluate(expression.right)
@@ -203,7 +196,6 @@ class Evaluator:
             left_relation.attributes,
             combined_rows,
         )
-
 
     def evaluate_minus(self, expression: BinaryExpression) -> Relation:
         left_relation = self.evaluate(expression.left)
@@ -225,7 +217,6 @@ class Evaluator:
             left_relation.attributes,
             difference_rows,
         )
-
 
     def evaluate_intersect(self, expression: BinaryExpression) -> Relation:
         left_relation = self.evaluate(expression.left)
@@ -251,9 +242,7 @@ class Evaluator:
         left_relation = self.evaluate(expression.left)
         right_relation = self.evaluate(expression.right)
 
-        combined_attributes = (
-            left_relation.attributes + right_relation.attributes
-        )
+        combined_attributes = left_relation.attributes + right_relation.attributes
 
         self.check_attribute_collisions(combined_attributes)
 
@@ -313,7 +302,9 @@ class Evaluator:
         right_relation: Relation,
     ) -> None:
         if len(left_relation.attributes) != len(right_relation.attributes):
-            raise ValueError("Relations are not union-compatible: different attribute counts")
+            raise ValueError(
+                "Relations are not union-compatible: different attribute counts"
+            )
 
         for left_attribute, right_attribute in zip(
             left_relation.attributes,
@@ -335,7 +326,9 @@ class Evaluator:
                         "Relations are not union-compatible: incompatible attribute types"
                     )
 
-    def evaluate_condition(self, condition: Condition, relation: Relation, row: Row) -> bool:
+    def evaluate_condition(
+        self, condition: Condition, relation: Relation, row: Row
+    ) -> bool:
         if isinstance(condition, Comparison):
             left = self.evaluate_operand(condition.left, relation, row)
             right = self.evaluate_operand(condition.right, relation, row)
@@ -358,18 +351,18 @@ class Evaluator:
                 right = self.evaluate_condition(condition.right, relation, row)
                 return left or right
 
-
         raise NotImplementedError(
             f"Condition evaluation not implemented for {type(condition).__name__}"
         )
 
-    def resolve_attribute(self, reference: AttributeReference, relation: Relation) -> int:
+    def resolve_attribute(
+        self, reference: AttributeReference, relation: Relation
+    ) -> int:
         matches: list[int] = []
 
         for index, attribute in enumerate(relation.attributes):
             if attribute.name == reference.name and (
-                reference.relation is None
-                or attribute.relation == reference.relation
+                reference.relation is None or attribute.relation == reference.relation
             ):
                 matches.append(index)
 
@@ -381,7 +374,9 @@ class Evaluator:
 
         return matches[0]
 
-    def evaluate_operand(self, operand: Operand, relation: Relation, row: Row) -> int | str:
+    def evaluate_operand(
+        self, operand: Operand, relation: Relation, row: Row
+    ) -> int | str:
         if isinstance(operand, NumberLiteral):
             return operand.value
 
@@ -399,30 +394,30 @@ class Evaluator:
         left: int | str,
         comparison_operator: ComparisonOperator,
         right: int | str,
-        ) -> bool:
-            operators = {
-                ComparisonOperator.EQUAL: operator.eq,
-                ComparisonOperator.NOT_EQUAL: operator.ne,
-                ComparisonOperator.LESS_THAN: operator.lt,
-                ComparisonOperator.LESS_THAN_OR_EQUAL: operator.le,
-                ComparisonOperator.GREATER_THAN: operator.gt,
-                ComparisonOperator.GREATER_THAN_OR_EQUAL: operator.ge,
-            }
+    ) -> bool:
+        operators = {
+            ComparisonOperator.EQUAL: operator.eq,
+            ComparisonOperator.NOT_EQUAL: operator.ne,
+            ComparisonOperator.LESS_THAN: operator.lt,
+            ComparisonOperator.LESS_THAN_OR_EQUAL: operator.le,
+            ComparisonOperator.GREATER_THAN: operator.gt,
+            ComparisonOperator.GREATER_THAN_OR_EQUAL: operator.ge,
+        }
 
-            try:
-                compare = operators[comparison_operator]
-            except KeyError:
-                raise NotImplementedError(
-                    f"Unsupported comparison operator: {comparison_operator}"
-                ) from None
+        try:
+            compare = operators[comparison_operator]
+        except KeyError:
+            raise NotImplementedError(
+                f"Unsupported comparison operator: {comparison_operator}"
+            ) from None
 
-            if isinstance(left, int) and isinstance(right, int):
-                return compare(left, right)
+        if isinstance(left, int) and isinstance(right, int):
+            return compare(left, right)
 
-            if isinstance(left, str) and isinstance(right, str):
-                return compare(left, right)
+        if isinstance(left, str) and isinstance(right, str):
+            return compare(left, right)
 
-            raise TypeError("Cannot compare values of different types")
+        raise TypeError("Cannot compare values of different types")
 
     def check_attribute_collisions(
         self,
@@ -438,11 +433,11 @@ class Evaluator:
 
             if qualified_name in seen_attributes:
                 raise ValueError(
-                    "Attribute collision: "
-                    f"{attribute.relation}.{attribute.name}"
+                    f"Attribute collision: {attribute.relation}.{attribute.name}"
                 )
 
             seen_attributes.add(qualified_name)
+
 
 def evaluate_condition_on_row(
     condition: Condition,

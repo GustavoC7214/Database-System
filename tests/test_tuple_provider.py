@@ -25,11 +25,10 @@ def test_database_iter_rows():
 def test_database_iter_rows_empty():
     database = Database()
 
-    database.add_relation(
-        Relation("R", [Attribute("R", "a")], [])
-    )
+    database.add_relation(Relation("R", [Attribute("R", "a")], []))
 
     assert list(database.iter_rows("R")) == []
+
 
 class MockTupleProvider:
     def get_relation(self, name: str) -> Relation:

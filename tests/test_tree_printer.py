@@ -16,6 +16,7 @@ def test_project_select_tree():
 
     assert tree == expected
 
+
 def test_binary_expression_tree():
     source = "(A union B) minus (C intersect D)"
 
@@ -33,6 +34,7 @@ def test_binary_expression_tree():
 
     assert tree == expected
 
+
 def test_boolean_condition_tree():
     source = "select[not (a=1 and b=2) or c>3](R)"
 
@@ -46,6 +48,7 @@ def test_boolean_condition_tree():
 
     assert tree == expected
 
+
 def test_join_tree():
     source = "Member join[Member.Place=Chapter.Location] Chapter"
 
@@ -58,6 +61,7 @@ def test_join_tree():
 └── Relation(Chapter)"""
     assert tree == expected
 
+
 def test_rename_tree():
     source = "rename[E2](Employees)"
 
@@ -69,6 +73,7 @@ def test_rename_tree():
 └── Relation(Employees)"""
 
     assert tree == expected
+
 
 def test_times_tree():
     source = "Employees times Departments"

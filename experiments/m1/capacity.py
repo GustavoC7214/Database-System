@@ -1,4 +1,3 @@
-
 """Measure theoretical and actual slotted-page record capacity."""
 
 from src.storage.record_codec import encode_record
@@ -28,9 +27,7 @@ def main():
         record = encode_record(values, schema)
         record_size = len(record)
 
-        theoretical = (
-            PAGE_SIZE - HEADER_SIZE
-        ) // (record_size + SLOT_SIZE)
+        theoretical = (PAGE_SIZE - HEADER_SIZE) // (record_size + SLOT_SIZE)
 
         page = SlottedPage(0)
         actual = 0

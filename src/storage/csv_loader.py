@@ -14,8 +14,7 @@ def convert_csv_row(
     """Convert CSV fields to typed values according to the schema."""
     if len(row) != len(schema):
         raise ValueError(
-            f"CSV row {row_number}: expected {len(schema)} columns, "
-            f"received {len(row)}"
+            f"CSV row {row_number}: expected {len(schema)} columns, received {len(row)}"
         )
 
     values: list[int | str] = []
@@ -88,7 +87,6 @@ def load_csv(
             reader = csv.reader(file, strict=True)
 
             for row_number, row in enumerate(reader, start=1):
-
                 try:
                     values = convert_csv_row(
                         row,
@@ -97,16 +95,13 @@ def load_csv(
                     )
                     record = encode_record(values, metadata.schema)
                 except ValueError as exc:
-                    raise ValueError(
-                        f"Table {table_name}: {exc}"
-                    ) from exc
+                    raise ValueError(f"Table {table_name}: {exc}") from exc
 
                 try:
                     heap.insert(record)
                 except ValueError as exc:
                     raise ValueError(
-                        f"Table {table_name}, CSV row {row_number}: "
-                        f"{exc}"
+                        f"Table {table_name}, CSV row {row_number}: {exc}"
                     ) from exc
 
                 inserted_count += 1
@@ -118,7 +113,6 @@ def load_csv(
             f"Table {table_name}: malformed CSV at line "
             f"{line_number}, column unknown: {exc}"
         ) from exc
-
 
     finally:
         # Persist successfully inserted records even if a later

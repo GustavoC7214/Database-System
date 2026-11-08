@@ -12,11 +12,13 @@ def test_get_existing_relation():
 
     assert database.get_relation("Employees") is employees
 
+
 def test_get_undefined_relation():
     database = Database()
 
     with pytest.raises(NameError):
         database.get_relation("Managers")
+
 
 def test_load_definition():
     database = Database()

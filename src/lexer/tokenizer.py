@@ -16,12 +16,12 @@ class Tokenizer:
         self.inside_relation_data = False
         self.line_has_data = False
         self.single_char_tokens = {
-            '(': TokenType.LPAREN,
-            ')': TokenType.RPAREN,
-            '[': TokenType.LBRACKET,
-            ']': TokenType.RBRACKET,
-            ',': TokenType.COMMA,
-            '.': TokenType.DOT
+            "(": TokenType.LPAREN,
+            ")": TokenType.RPAREN,
+            "[": TokenType.LBRACKET,
+            "]": TokenType.RBRACKET,
+            ",": TokenType.COMMA,
+            ".": TokenType.DOT,
         }
 
     def is_at_end(self) -> bool:
@@ -38,10 +38,10 @@ class Tokenizer:
 
         if char is None:
             return None
-        
+
         self.current.index += 1
 
-        if char == '\n':
+        if char == "\n":
             self.current.line += 1
             self.current.column = 1
         else:
@@ -57,9 +57,7 @@ class Tokenizer:
 
     def mark_start(self) -> None:
         self.start = SourcePosition(
-            index=self.current.index,
-            line=self.current.line,
-            column=self.current.column
+            index=self.current.index, line=self.current.line, column=self.current.column
         )
 
     def tokenize(self) -> list[Token]:
@@ -73,16 +71,14 @@ class Tokenizer:
 
     def add_token(self, token_type: TokenType, value: str | None = None) -> None:
         if value is None:
-            value = self.source[self.start.index:self.current.index]
+            value = self.source[self.start.index : self.current.index]
 
         token = Token(
             type=token_type,
             value=value,
             position=SourcePosition(
-                index=self.start.index,
-                line=self.start.line,
-                column=self.start.column
-            )
+                index=self.start.index, line=self.start.line, column=self.start.column
+            ),
         )
         self.tokens.append(token)
 
@@ -99,8 +95,8 @@ class Tokenizer:
         if self.inside_relation_data and self.scan_relation_data_token(char):
             return
         if self.is_ascii_letter(char):
-            self.scan_identifier()   
-            
+            self.scan_identifier()
+
         elif char in self.single_char_tokens:
             self.add_token(self.single_char_tokens[char])
         elif char == "{":
@@ -132,10 +128,8 @@ class Tokenizer:
             char = self.current_char()
 
             if char is None or not (
-                self.is_ascii_letter(char)
-                or self.is_ascii_digit(char)
-                or char == "_"
-                ):
+                self.is_ascii_letter(char) or self.is_ascii_digit(char) or char == "_"
+            ):
                 break
 
             self.advance()
@@ -189,16 +183,16 @@ class Tokenizer:
                 self.advance()  # Consume the closing quote
                 terminated = True
                 break
-            
+
             self.advance()
-        
+
         if not terminated:
             raise LexicalError(
                 f"Unterminated string at line {self.start.line}, "
                 f"column {self.start.column}"
             )
-        
-        value = self.source[self.start.index + 1:self.current.index - 1]
+
+        value = self.source[self.start.index + 1 : self.current.index - 1]
         value = value.replace("''", "'")
         self.add_token(TokenType.STRING, value)
 
@@ -215,15 +209,16 @@ class Tokenizer:
             if char is None or self.is_relation_value_delimiter(char):
                 break
 
-            if (char == "/"
+            if (
+                char == "/"
                 and self.current.index + 1 < len(self.source)
-                and self.source[self.current.index:self.current.index + 2] == "//"
-                ):
-                    break
+                and self.source[self.current.index : self.current.index + 2] == "//"
+            ):
+                break
 
             self.advance()
-    
-        value = self.source[self.start.index:self.current.index]
+
+        value = self.source[self.start.index : self.current.index]
         if self.is_number_value(value):
             self.add_token(TokenType.NUMBER, value)
         else:
@@ -234,7 +229,7 @@ class Tokenizer:
             self.scan_relation_value()
             self.line_has_data = True
             return True
-        
+
         return False
 
     def scan_number_token(self, char: str) -> bool:

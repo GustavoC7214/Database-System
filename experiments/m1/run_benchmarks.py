@@ -1,4 +1,3 @@
-
 """Run Module 1 LRU and CLOCK trace benchmarks."""
 
 import csv

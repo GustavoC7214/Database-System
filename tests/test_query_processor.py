@@ -44,9 +44,7 @@ def test_query_relation_created_from_source(processor):
 }"""
     )
 
-    result = processor.execute(
-        "project[Name](select[Age > 25](Member))"
-    )
+    result = processor.execute("project[Name](select[Age > 25](Member))")
 
     assert result.attributes == [
         Attribute("Member", "Name"),
@@ -173,10 +171,10 @@ def test_projection_preserves_duplicate_rows(processor):
         Attribute("Member", "Place"),
     ]
     assert result.rows == [
-    Row(["Ottawa"]),
-    Row(["Ottawa"]),
-    Row(["Toronto"]),
-]
+        Row(["Ottawa"]),
+        Row(["Ottawa"]),
+        Row(["Toronto"]),
+    ]
     assert {tuple(row.values) for row in result.rows} == {
         ("Ottawa",),
         ("Toronto",),
@@ -354,11 +352,7 @@ def test_syntax_error_for_missing_parenthesis(processor):
 
     message = str(error.value).lower()
 
-    assert (
-        "expected" in message
-        or "parenthesis" in message
-        or ")" in message
-    )
+    assert "expected" in message or "parenthesis" in message or ")" in message
 
 
 def test_name_error_for_unknown_relation(processor):
@@ -510,13 +504,10 @@ D2, Finance
 }"""
     )
 
-    result = processor.execute(
-        "Emp join[Emp.DID=Dept.DID] Dept"
-    )
+    result = processor.execute("Emp join[Emp.DID=Dept.DID] Dept")
 
     assert [
-        (attribute.relation, attribute.name)
-        for attribute in result.attributes
+        (attribute.relation, attribute.name) for attribute in result.attributes
     ] == [
         ("Emp", "EID"),
         ("Emp", "Name"),
@@ -542,13 +533,10 @@ E4, David, E4
 }"""
     )
 
-    result = processor.execute(
-        "Emp join[Emp.MgrID=E2.EID] rename[E2](Emp)"
-    )
+    result = processor.execute("Emp join[Emp.MgrID=E2.EID] rename[E2](Emp)")
 
     assert [
-        (attribute.relation, attribute.name)
-        for attribute in result.attributes
+        (attribute.relation, attribute.name) for attribute in result.attributes
     ] == [
         ("Emp", "EID"),
         ("Emp", "Name"),
@@ -589,13 +577,10 @@ def test_times_allows_renamed_relation(processor):
 }"""
     )
 
-    result = processor.execute(
-        "R times rename[R2](R)"
-    )
+    result = processor.execute("R times rename[R2](R)")
 
     assert [
-        (attribute.relation, attribute.name)
-        for attribute in result.attributes
+        (attribute.relation, attribute.name) for attribute in result.attributes
     ] == [
         ("R", "Id"),
         ("R", "Name"),
@@ -623,9 +608,7 @@ def test_join_rejects_qualified_attribute_collisions(processor):
         ValueError,
         match=r"Attribute collision: R\.Id",
     ):
-        processor.execute(
-            "R join[R.Id=R.Id] R"
-        )
+        processor.execute("R join[R.Id=R.Id] R")
 
 
 def test_join_allows_renamed_relation(processor):
@@ -636,13 +619,10 @@ def test_join_allows_renamed_relation(processor):
 }"""
     )
 
-    result = processor.execute(
-        "R join[R.Id=R2.Id] rename[R2](R)"
-    )
+    result = processor.execute("R join[R.Id=R2.Id] rename[R2](R)")
 
     assert [
-        (attribute.relation, attribute.name)
-        for attribute in result.attributes
+        (attribute.relation, attribute.name) for attribute in result.attributes
     ] == [
         ("R", "Id"),
         ("R", "Name"),

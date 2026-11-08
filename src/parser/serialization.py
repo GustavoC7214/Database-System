@@ -18,9 +18,7 @@ NODE_TYPES = {
 ENUM_TYPES = {
     cls.__name__: cls
     for cls in vars(ast).values()
-    if isinstance(cls, type)
-    and issubclass(cls, Enum)
-    and cls is not Enum
+    if isinstance(cls, type) and issubclass(cls, Enum) and cls is not Enum
 }
 
 
@@ -44,10 +42,7 @@ def ast_to_dict(value: Any) -> Any:
         return [ast_to_dict(item) for item in value]
 
     if isinstance(value, dict):
-        return {
-            key: ast_to_dict(item)
-            for key, item in value.items()
-        }
+        return {key: ast_to_dict(item) for key, item in value.items()}
 
     if value is None or type(value) in (str, int, bool):
         return value
@@ -74,9 +69,7 @@ def ast_from_dict(value: Any) -> Any:
             node_class = NODE_TYPES[node_name]
 
             if not is_dataclass(node_class):
-                raise TypeError(
-                    f"AST node {node_name} is not a dataclass"
-                )
+                raise TypeError(f"AST node {node_name} is not a dataclass")
 
             arguments = {
                 field.name: ast_from_dict(value[field.name])
@@ -85,10 +78,7 @@ def ast_from_dict(value: Any) -> Any:
 
             return node_class(**arguments)
 
-        return {
-            key: ast_from_dict(item)
-            for key, item in value.items()
-        }
+        return {key: ast_from_dict(item) for key, item in value.items()}
 
     return value
 

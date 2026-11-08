@@ -1,4 +1,3 @@
-
 from dataclasses import dataclass, field
 
 from src.storage.disk_manager import PAGE_SIZE, DiskManager
@@ -7,9 +6,7 @@ from src.storage.disk_manager import PAGE_SIZE, DiskManager
 @dataclass
 class BufferFrame:
     page_id: int | None = None
-    data: bytearray = field(
-        default_factory=lambda: bytearray(PAGE_SIZE)
-    )
+    data: bytearray = field(default_factory=lambda: bytearray(PAGE_SIZE))
     pin_count: int = 0
     dirty: bool = False
     reference_bit: bool = False

@@ -1,4 +1,3 @@
-
 """Command-line interface for the storage engine."""
 
 import argparse
@@ -157,9 +156,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Output buffer pool statistics as JSON",
     )
 
-
     return parser
-
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -185,10 +182,7 @@ def main(argv: list[str] | None = None) -> int:
             csv_path=args.file,
         )
 
-        print(
-            f"Loaded {inserted_count} records "
-            f"into table {args.table}"
-        )
+        print(f"Loaded {inserted_count} records into table {args.table}")
 
     elif args.command == "scan":
         if args.frames < 1:
@@ -210,10 +204,14 @@ def main(argv: list[str] | None = None) -> int:
         if args.limit != 0:
             for _, data in heap.scan():
                 values = decode_record(data, metadata.schema)
-                records.append(dict(zip(
-                    (name for name, _ in metadata.schema),
-                    values,
-                )))
+                records.append(
+                    dict(
+                        zip(
+                            (name for name, _ in metadata.schema),
+                            values,
+                        )
+                    )
+                )
 
                 if args.limit is not None and len(records) >= args.limit:
                     break
@@ -229,7 +227,6 @@ def main(argv: list[str] | None = None) -> int:
         metadata = catalog.get_table(args.table)
 
         disk = DiskManager(Path(args.db) / metadata.filename)
-
 
         if args.page < 1 or args.page >= disk.page_count():
             parser.error(
@@ -259,11 +256,7 @@ def main(argv: list[str] | None = None) -> int:
             directory_page_id = directory.next_dir_page
 
         if not is_data_page:
-            parser.error(
-                f"Page {args.page} is not a registered data page"
-            )
-
-
+            parser.error(f"Page {args.page} is not a registered data page")
 
         page = SlottedPage(
             args.page,
@@ -282,10 +275,7 @@ def main(argv: list[str] | None = None) -> int:
             if length == 0:
                 print(f"Slot {slot_number}: DEAD")
             else:
-                print(
-                    f"Slot {slot_number}: "
-                    f"offset={offset}, length={length}"
-                )
+                print(f"Slot {slot_number}: offset={offset}, length={length}")
 
     elif args.command == "trace":
         if args.frames < 1:

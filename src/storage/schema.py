@@ -16,9 +16,7 @@ def parse_schema(schema_text: str) -> list[tuple[str, str]]:
         parts = column_definition.strip().split(":")
 
         if len(parts) != 2 or not parts[0].strip() or not parts[1].strip():
-            raise ValueError(
-                f"Invalid column definition: {column_definition.strip()}"
-            )
+            raise ValueError(f"Invalid column definition: {column_definition.strip()}")
 
         column_name = parts[0].strip()
         column_type = parts[1].strip().upper()
@@ -33,16 +31,13 @@ def parse_schema(schema_text: str) -> list[tuple[str, str]]:
             match = VARCHAR_PATTERN.fullmatch(column_type)
 
             if match is None:
-                raise ValueError(
-                    f"Unsupported column type: {column_type}"
-                )
+                raise ValueError(f"Unsupported column type: {column_type}")
 
             max_length = int(match.group(1))
 
             if not 1 <= max_length <= 255:
                 raise ValueError(
-                    f"VARCHAR length must be between 1 and 255: "
-                    f"{column_name}"
+                    f"VARCHAR length must be between 1 and 255: {column_name}"
                 )
 
             column_type = f"VARCHAR({max_length})"

@@ -25,6 +25,7 @@ def test_no_whitespace_expression():
 
     assert actual == expected
 
+
 def test_expression_with_whitespace():
     source = "select [ x1 = 3 ] ( R )"
 
@@ -46,7 +47,8 @@ def test_expression_with_whitespace():
         (TokenType.EOF, ""),
     ]
 
-    assert actual == expected    
+    assert actual == expected
+
 
 def test_greater_than_or_equal_operator():
     source = "select[Age>=30](R)"
@@ -71,6 +73,7 @@ def test_greater_than_or_equal_operator():
 
     assert actual == expected
 
+
 def test_greater_than_negative_number():
     source = "select[Age>-30](R)"
 
@@ -93,6 +96,7 @@ def test_greater_than_negative_number():
     ]
 
     assert actual == expected
+
 
 def test_parenthesis_inside_string():
     source = "select[Name='Bob)'](R)"
@@ -117,6 +121,7 @@ def test_parenthesis_inside_string():
 
     assert actual == expected
 
+
 def test_comma_inside_string():
     source = "select[Name='a,b'](R)"
 
@@ -139,6 +144,7 @@ def test_comma_inside_string():
     ]
 
     assert actual == expected
+
 
 def test_doubled_quote_inside_string():
     source = "select[Name='O''Brien'](R)"
@@ -163,6 +169,7 @@ def test_doubled_quote_inside_string():
 
     assert actual == expected
 
+
 def test_keyword_as_attribute():
     source = "select[union=3](R)"
 
@@ -186,6 +193,7 @@ def test_keyword_as_attribute():
 
     assert actual == expected
 
+
 def test_unterminated_string():
     source = "select[Name='Bob](R)"
 
@@ -193,6 +201,7 @@ def test_unterminated_string():
         Tokenizer(source).tokenize()
 
     assert "line 1, column 13" in str(error.value)
+
 
 def test_alphanumeric_relation_value_is_bare_string():
     source = """R (Value) = {
@@ -220,6 +229,7 @@ def test_alphanumeric_relation_value_is_bare_string():
 
     assert actual == expected
 
+
 def test_quoted_only_tuple_emits_newline():
     source = """Names (Name) = {
 'John Smith'
@@ -245,6 +255,7 @@ def test_quoted_only_tuple_emits_newline():
     ]
 
     assert actual == expected
+
 
 def test_comment_only_line_does_not_emit_newline():
     source = """R (Value) = {
@@ -276,6 +287,7 @@ second
 
     assert actual == expected
 
+
 def test_inline_comment_without_whitespace():
     source = """R (Value) = {
 first// comment
@@ -302,6 +314,7 @@ first// comment
 
     assert actual == expected
 
+
 def test_non_ascii_identifier_raises_lexical_error():
     source = "Employées"
 
@@ -310,6 +323,7 @@ def test_non_ascii_identifier_raises_lexical_error():
 
     assert "line 1, column 7" in str(error.value)
 
+
 def test_identifier_cannot_start_with_underscore():
     source = "_Employee"
 
@@ -317,6 +331,7 @@ def test_identifier_cannot_start_with_underscore():
         Tokenizer(source).tokenize()
 
     assert "line 1, column 1" in str(error.value)
+
 
 def test_standalone_exclamation_mark_raises_lexical_error():
     source = "select[Age!30](R)"

@@ -1,4 +1,3 @@
-
 import struct
 
 
@@ -33,11 +32,11 @@ def encode_varchar(value: str, max_length: int) -> bytes:
 
     if len(encoded) > max_length:
         raise ValueError(
-            f"VARCHAR value is {len(encoded)} bytes, "
-            f"maximum is {max_length}"
+            f"VARCHAR value is {len(encoded)} bytes, maximum is {max_length}"
         )
 
     return struct.pack("<H", len(encoded)) + encoded
+
 
 def decode_varchar(data: bytes, max_length: int) -> str:
     """Decode a length-prefixed UTF-8 string."""
@@ -57,15 +56,14 @@ def decode_varchar(data: bytes, max_length: int) -> str:
 
     return data[2:].decode("utf-8")
 
+
 def encode_record(
     values: tuple[int | str, ...],
     schema: list[tuple[str, str]],
 ) -> bytes:
     """Encode a complete record according to its schema."""
     if len(values) != len(schema):
-        raise ValueError(
-            f"Expected {len(schema)} values, received {len(values)}"
-        )
+        raise ValueError(f"Expected {len(schema)} values, received {len(values)}")
 
     result = bytearray()
 
@@ -96,6 +94,7 @@ def encode_record(
 
     return bytes(result)
 
+
 def decode_record(
     data: bytes,
     schema: list[tuple[str, str]],
@@ -107,11 +106,9 @@ def decode_record(
     for column_name, column_type in schema:
         if column_type == "INT":
             if offset + 4 > len(data):
-                raise ValueError(
-                    f"Insufficient data for INT column {column_name}"
-                )
+                raise ValueError(f"Insufficient data for INT column {column_name}")
 
-            values.append(decode_int(data[offset:offset + 4]))
+            values.append(decode_int(data[offset : offset + 4]))
             offset += 4
 
         elif column_type.startswith("VARCHAR(") and column_type.endswith(")"):
@@ -123,25 +120,17 @@ def decode_record(
                 ) from exc
 
             if not 1 <= max_length <= 255:
-                raise ValueError(
-                    f"Invalid VARCHAR length for column {column_name}"
-                )
+                raise ValueError(f"Invalid VARCHAR length for column {column_name}")
 
             if offset + 2 > len(data):
-                raise ValueError(
-                    f"Missing VARCHAR length for column {column_name}"
-                )
+                raise ValueError(f"Missing VARCHAR length for column {column_name}")
 
-            length = int.from_bytes(
-                data[offset:offset + 2], byteorder="little"
-            )
+            length = int.from_bytes(data[offset : offset + 2], byteorder="little")
 
             end = offset + 2 + length
 
             if end > len(data):
-                raise ValueError(
-                    f"Truncated VARCHAR data for column {column_name}"
-                )
+                raise ValueError(f"Truncated VARCHAR data for column {column_name}")
 
             values.append(decode_varchar(data[offset:end], max_length))
             offset = end

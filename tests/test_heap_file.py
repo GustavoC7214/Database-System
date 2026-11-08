@@ -1,4 +1,3 @@
-
 import pytest
 
 from src.storage.directory_page import NO_NEXT_PAGE, DirectoryPage
@@ -66,7 +65,6 @@ def test_heap_file_uses_existing_database_file(tmp_path):
 
     assert heap.page_count == 1
     assert heap.disk.read_page(0) == DirectoryPage(0).to_bytes()
-
 
 
 def test_insert_first_record(tmp_path):
@@ -199,7 +197,6 @@ def test_directory_chaining(tmp_path):
     assert heap.page_count == 684
 
 
-
 def test_delete_record(tmp_path):
     heap = HeapFile(tmp_path / "R.db")
     rid = heap.insert(b"hello")
@@ -281,7 +278,6 @@ def test_deletion_persists_after_reopening(tmp_path):
 
     with pytest.raises(ValueError, match="deleted"):
         reopened.get(rid)
-
 
 
 def test_scan_empty_heap(tmp_path):
@@ -432,9 +428,7 @@ def test_insert_keeps_dirty_pages_cached_until_flush(tmp_path):
     heap.flush()
 
     assert frame.dirty is False
-    assert heap.disk.read_page(rid[0])[:4] == rid[0].to_bytes(
-        4, byteorder="little"
-    )
+    assert heap.disk.read_page(rid[0])[:4] == rid[0].to_bytes(4, byteorder="little")
 
 
 def test_rid_cannot_reference_directory_page(tmp_path):

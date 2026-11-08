@@ -70,7 +70,6 @@ def test_resolve_qualified_attribute():
     ]
     employees = Relation("Employees", attributes, [])
     reference = AttributeReference(name="Age", relation="Employees")
-    
 
     assert evaluator.resolve_attribute(reference, employees) == 2
 
@@ -317,7 +316,9 @@ def test_evaluate_and_condition():
     )
 
     assert evaluator.evaluate_condition(condition, relation, Row([32, "John"])) is True
-    assert evaluator.evaluate_condition(condition, relation, Row([32, "Alice"])) is False
+    assert (
+        evaluator.evaluate_condition(condition, relation, Row([32, "Alice"])) is False
+    )
     assert evaluator.evaluate_condition(condition, relation, Row([20, "John"])) is False
 
 
@@ -349,7 +350,9 @@ def test_evaluate_or_condition():
     assert evaluator.evaluate_condition(condition, relation, Row([32, "John"])) is True
     assert evaluator.evaluate_condition(condition, relation, Row([32, "Alice"])) is True
     assert evaluator.evaluate_condition(condition, relation, Row([20, "John"])) is True
-    assert evaluator.evaluate_condition(condition, relation, Row([20, "Alice"])) is False
+    assert (
+        evaluator.evaluate_condition(condition, relation, Row([20, "Alice"])) is False
+    )
 
 
 def test_evaluate_select():
@@ -398,20 +401,20 @@ def test_evaluate_select():
     assert result.attributes == employees.attributes
     assert result.rows == []
 
-    expression = Select (
-        condition = Comparison(
-            left = AttributeReference(name = "Name"),
-            operator = ComparisonOperator.EQUAL,
-            right = StringLiteral("Bob")
+    expression = Select(
+        condition=Comparison(
+            left=AttributeReference(name="Name"),
+            operator=ComparisonOperator.EQUAL,
+            right=StringLiteral("Bob"),
         ),
-        expression = Select(
-            condition = Comparison(
-                left = AttributeReference(name = "Age"),
-                operator = ComparisonOperator.GREATER_THAN,
-                right = NumberLiteral(25)
+        expression=Select(
+            condition=Comparison(
+                left=AttributeReference(name="Age"),
+                operator=ComparisonOperator.GREATER_THAN,
+                right=NumberLiteral(25),
             ),
-            expression = RelationReference("Employees")
-        )
+            expression=RelationReference("Employees"),
+        ),
     )
 
     result = evaluator.evaluate(expression)
@@ -664,6 +667,7 @@ def test_evaluate_select_over_project():
     assert result.attributes == [Attribute("Employees", "Name")]
     assert result.rows == [Row(["John"])]
 
+
 def test_evaluate_project_qualified_attributes():
     database = Database()
     employees = Relation(
@@ -711,6 +715,7 @@ def test_evaluate_project_departments_qualified_attribute():
     assert result.attributes == [Attribute("Departments", "DID")]
     assert result.rows == [Row([20])]
 
+
 def test_evaluate_project_both_qualified_attributes():
     database = Database()
     employees = Relation(
@@ -740,9 +745,10 @@ def test_evaluate_project_both_qualified_attributes():
     ]
     assert result.rows == [Row([20, 10])]
 
+
 def test_evaluate_sort_ascending():
     database = Database()
-    
+
     employees = Relation(
         "Employees",
         [
@@ -759,9 +765,9 @@ def test_evaluate_sort_ascending():
     evaluator = Evaluator(database)
 
     expression = Sort(
-        attribute = AttributeReference(name ="Age"),
-        direction = SortDictionary.ASC,
-        expression = RelationReference("Employees")
+        attribute=AttributeReference(name="Age"),
+        direction=SortDictionary.ASC,
+        expression=RelationReference("Employees"),
     )
     result = evaluator.evaluate(expression)
 
@@ -779,7 +785,7 @@ def test_evaluate_sort_ascending():
 
 def test_evaluate_sort_descending():
     database = Database()
-    
+
     employees = Relation(
         "Employees",
         [
@@ -796,9 +802,9 @@ def test_evaluate_sort_descending():
     evaluator = Evaluator(database)
 
     expression = Sort(
-        attribute = AttributeReference(name ="Age"),
-        direction = SortDictionary.DESC,
-        expression = RelationReference("Employees")
+        attribute=AttributeReference(name="Age"),
+        direction=SortDictionary.DESC,
+        expression=RelationReference("Employees"),
     )
     result = evaluator.evaluate(expression)
 
@@ -811,7 +817,7 @@ def test_evaluate_sort_descending():
 
 def test_evaluate_sort_undefined_attribute():
     database = Database()
-    
+
     employees = Relation(
         "Employees",
         [
@@ -838,7 +844,7 @@ def test_evaluate_sort_undefined_attribute():
 
 def test_evaluate_sort_ambiguous_attribute():
     database = Database()
-    
+
     employees = Relation(
         "Employees",
         [
@@ -862,7 +868,7 @@ def test_evaluate_sort_ambiguous_attribute():
 
 def test_evaluate_sort_qualified_attribute():
     database = Database()
-    
+
     employees = Relation(
         "Employees",
         [
@@ -885,7 +891,7 @@ def test_evaluate_sort_qualified_attribute():
     )
 
     result = evaluator.evaluate(expression)
-    
+
     assert result.rows == [
         Row([20, 10]),
         Row([30, 20]),
@@ -895,18 +901,18 @@ def test_evaluate_sort_qualified_attribute():
 
 def test_evaluate_sort_string_attribute():
     database = Database()
-    
+
     employees = Relation(
         "Employees",
         [
             Attribute("Employees", "Name"),
             Attribute("Empolyees", "Age"),
         ],
-    [
-        Row(["John", 32]),
-        Row(["Alice", 20]),
-        Row(["Bob", 28]),
-    ]
+        [
+            Row(["John", 32]),
+            Row(["Alice", 20]),
+            Row(["Bob", 28]),
+        ],
     )
     database.add_relation(employees)
     evaluator = Evaluator(database)
@@ -918,7 +924,7 @@ def test_evaluate_sort_string_attribute():
     )
 
     result = evaluator.evaluate(expression)
-    
+
     assert result.rows == [
         Row(["Alice", 20]),
         Row(["Bob", 28]),
@@ -928,11 +934,13 @@ def test_evaluate_sort_string_attribute():
 
 def test_evaluate_sort_empty_relation():
     database = Database()
-    
+
     employees = Relation(
         "Employees",
-        [Attribute("Employees", "Age"),],
-        []
+        [
+            Attribute("Employees", "Age"),
+        ],
+        [],
     )
     database.add_relation(employees)
     evaluator = Evaluator(database)
@@ -944,13 +952,13 @@ def test_evaluate_sort_empty_relation():
     )
 
     result = evaluator.evaluate(expression)
-    
+
     assert result.rows == []
 
 
 def test_evaluate_sort_duplicates_values():
     database = Database()
-    
+
     employees = Relation(
         "Employees",
         [
@@ -961,7 +969,7 @@ def test_evaluate_sort_duplicates_values():
             Row(["John", 25]),
             Row(["Alice", 20]),
             Row(["Bob", 25]),
-        ]
+        ],
     )
     database.add_relation(employees)
     evaluator = Evaluator(database)
@@ -973,7 +981,7 @@ def test_evaluate_sort_duplicates_values():
     )
 
     result = evaluator.evaluate(expression)
-    
+
     assert result.rows == [
         Row(["Alice", 20]),
         Row(["John", 25]),
@@ -2055,10 +2063,7 @@ def test_evaluate_difference_preserves_remaining_duplicates():
 
     result = evaluator.evaluate(expression)
 
-    assert result.rows == [
-        Row(["Alice"]),
-        Row(["Alice"])
-    ]
+    assert result.rows == [Row(["Alice"]), Row(["Alice"])]
 
 
 def test_evaluate_difference_empty_left_relation():

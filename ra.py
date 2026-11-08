@@ -11,9 +11,7 @@ from src.parser.tree_printer import print_tree
 
 
 def parse_arguments() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Relational Algebra Query Processor"
-    )
+    parser = argparse.ArgumentParser(description="Relational Algebra Query Processor")
 
     parser.add_argument(
         "query",
@@ -40,14 +38,10 @@ def load_relations(
     processor: QueryProcessor,
 ) -> None:
     if not file_path.exists():
-        raise FileNotFoundError(
-            f"Relation file not found: {file_path}"
-        )
+        raise FileNotFoundError(f"Relation file not found: {file_path}")
 
     if not file_path.is_file():
-        raise IsADirectoryError(
-            f"Relation path is not a file: {file_path}"
-        )
+        raise IsADirectoryError(f"Relation path is not a file: {file_path}")
 
     source = file_path.read_text(encoding="utf-8")
 
@@ -71,10 +65,7 @@ def load_relations(
 
 
 def format_table(relation: Relation) -> str:
-    relation_names = {
-        attribute.relation
-        for attribute in relation.attributes
-    }
+    relation_names = {attribute.relation for attribute in relation.attributes}
 
     qualify_headers = len(relation_names) > 1
 
@@ -87,10 +78,7 @@ def format_table(relation: Relation) -> str:
         for attribute in relation.attributes
     ]
 
-    rows = [
-        [str(value) for value in row.values]
-        for row in relation.rows
-    ]
+    rows = [[str(value) for value in row.values] for row in relation.rows]
 
     widths = []
 
@@ -106,14 +94,10 @@ def format_table(relation: Relation) -> str:
         widths.append(width)
 
     header_line = " | ".join(
-        header.ljust(width)
-        for header, width in zip(headers, widths)
+        header.ljust(width) for header, width in zip(headers, widths)
     )
 
-    separator_line = "-+-".join(
-        "-" * width
-        for width in widths
-    )
+    separator_line = "-+-".join("-" * width for width in widths)
 
     lines = [
         header_line,
@@ -125,10 +109,7 @@ def format_table(relation: Relation) -> str:
     else:
         for row in rows:
             lines.append(
-                " | ".join(
-                    value.ljust(width)
-                    for value, width in zip(row, widths)
-                )
+                " | ".join(value.ljust(width) for value, width in zip(row, widths))
             )
 
     return "\n".join(lines)
