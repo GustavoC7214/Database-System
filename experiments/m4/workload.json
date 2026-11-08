@@ -1,0 +1,106 @@
+
+{
+  "description": "Student-defined deterministic Module 4 workload",
+  "queries": [
+    {
+      "id": "Q01",
+      "category": "scan",
+      "sql": "SELECT * FROM Customers;"
+    },
+    {
+      "id": "Q02",
+      "category": "scan",
+      "sql": "SELECT * FROM Orders;"
+    },
+    {
+      "id": "Q03",
+      "category": "projection",
+      "sql": "SELECT cid, region FROM Customers;"
+    },
+    {
+      "id": "Q04",
+      "category": "selection",
+      "sql": "SELECT * FROM Customers WHERE region = 1;"
+    },
+    {
+      "id": "Q05",
+      "category": "selection",
+      "sql": "SELECT * FROM Customers WHERE tier = 2;"
+    },
+    {
+      "id": "Q06",
+      "category": "selection",
+      "sql": "SELECT * FROM Customers WHERE age > 40;"
+    },
+    {
+      "id": "Q07",
+      "category": "selection",
+      "sql": "SELECT * FROM Orders WHERE amount > 800;"
+    },
+    {
+      "id": "Q08",
+      "category": "selection",
+      "sql": "SELECT * FROM Orders WHERE status = 3;"
+    },
+    {
+      "id": "Q09",
+      "category": "selection",
+      "sql": "SELECT * FROM Shipments WHERE days < 5;"
+    },
+    {
+      "id": "Q10",
+      "category": "selection",
+      "sql": "SELECT * FROM Payments WHERE method = 2;"
+    },
+    {
+      "id": "Q11",
+      "category": "two_table_join",
+      "sql": "SELECT Customers.cid, Orders.oid FROM Customers JOIN Orders ON Customers.cid = Orders.cid;"
+    },
+    {
+      "id": "Q12",
+      "category": "two_table_join",
+      "sql": "SELECT Orders.oid, Payments.pid FROM Orders JOIN Payments ON Orders.oid = Payments.oid;"
+    },
+    {
+      "id": "Q13",
+      "category": "two_table_join",
+      "sql": "SELECT Orders.oid, Shipments.sid FROM Orders JOIN Shipments ON Orders.oid = Shipments.oid;"
+    },
+    {
+      "id": "Q14",
+      "category": "join_with_filter",
+      "sql": "SELECT Customers.cid, Orders.oid FROM Customers JOIN Orders ON Customers.cid = Orders.cid WHERE Customers.region = 1;"
+    },
+    {
+      "id": "Q15",
+      "category": "join_with_filter",
+      "sql": "SELECT Customers.cid, Orders.oid FROM Customers JOIN Orders ON Customers.cid = Orders.cid WHERE Customers.tier = 2;"
+    },
+    {
+      "id": "Q16",
+      "category": "join_with_filter",
+      "sql": "SELECT Orders.oid, Payments.pid FROM Orders JOIN Payments ON Orders.oid = Payments.oid WHERE Orders.amount > 800;"
+    },
+    {
+      "id": "Q17",
+      "category": "three_table_join",
+      "sql": "SELECT Customers.cid, Orders.oid, Payments.pid FROM Customers JOIN Orders ON Customers.cid = Orders.cid JOIN Payments ON Orders.oid = Payments.oid;"
+    },
+    {
+      "id": "Q18",
+      "category": "three_table_join",
+      "sql": "SELECT Customers.cid, Orders.oid, Shipments.sid FROM Customers JOIN Orders ON Customers.cid = Orders.cid JOIN Shipments ON Orders.oid = Shipments.oid;"
+    },
+    {
+      "id": "Q19",
+      "category": "four_table_join",
+      "sql": "SELECT Customers.cid, Orders.oid, Payments.pid, Shipments.sid FROM Customers JOIN Orders ON Customers.cid = Orders.cid JOIN Payments ON Orders.oid = Payments.oid JOIN Shipments ON Orders.oid = Shipments.oid;"
+    },
+    {
+      "id": "Q20",
+      "category": "correlated_columns",
+      "sql": "SELECT * FROM Customers WHERE region = 1 AND tier = 1;"
+    }
+  ]
+}

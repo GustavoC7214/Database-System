@@ -1,0 +1,2 @@
+query,category,rows,optimized_reads,optimized_writes,optimized_io,baseline_reads,baseline_writes,baseline_io,baseline_over_optimized,optimized_operator_reads,baseline_operator_reads,optimized_tuples_in,baseline_tuples_in
+Q20,correlated_columns,60,5,0,5,5,0,5,1.0,5,5,0,0

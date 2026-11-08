@@ -1,0 +1,4 @@
+query,category,node_path,operator,estimated_rows,actual_rows,q_error
+Q20,correlated_columns,root,project,180,600,3.333333
+Q20,correlated_columns,root.child,select,180,600,3.333333
+Q20,correlated_columns,root.child.child,scan,2400,2400,1.0

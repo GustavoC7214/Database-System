@@ -17,3 +17,9 @@ __pycache__/
 
 # Temporary trace and experiment outputs
 trace_pages.db
+
+# Local database files and optimizer test data
+/data/
+
+# Local Pyright configuration
+/pyrightconfig.json

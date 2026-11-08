@@ -1,0 +1,9 @@
+frames,variant,algorithm,output_rows,buffer_reads,buffer_writes,operator_page_reads,operator_page_writes
+4,original,nested_loop_join,600,159,0,356,42
+4,corrected,hash_join,600,157,0,26977,44
+8,original,nested_loop_join,600,159,0,232,42
+8,corrected,nested_loop_join,600,159,0,232,42
+16,original,nested_loop_join,600,159,0,201,42
+16,corrected,nested_loop_join,600,159,0,201,42
+32,original,nested_loop_join,600,159,0,201,42
+32,corrected,nested_loop_join,600,159,0,201,42
