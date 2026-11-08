@@ -695,3 +695,21 @@ python3 -m ruff format --check .
 ```
 
 The benchmark scripts, CSV outputs, and generated figures provide the supporting evidence for the results presented in this report.
+
+---
+
+## 12. References and Influence on Design
+
+The following publications provide theoretical foundations for the execution algorithms evaluated in this report.
+
+1. Graefe, G. (1994). *Volcano—An Extensible and Parallel Query Evaluation System*. IEEE Transactions on Knowledge and Data Engineering, 6(1), 120–135.
+
+2. Shapiro, L. D. (1986). *Join Processing in Database Systems with Large Main Memories*. ACM Transactions on Database Systems, 11(3), 239–264.
+
+### Influence on Design
+
+**Iterator-based execution:** Graefe's work provides a foundation for the pull-based execution model, in which operators expose a common interface and request tuples from their children. This model informed the organization of the execution engine around `open()`, `next()`, and `close()`.
+
+**Hash-join memory management:** Shapiro's analysis of join processing provides theoretical context for partition-based join algorithms and their memory requirements. These ideas are relevant to the Grace Hash Join implementation, particularly the use of disk-backed partitions and the handling of partitions that exceed available memory.
+
+**Experimental evaluation:** Both sources provide context for comparing physical execution strategies. The experiments in this report investigate how memory availability, relation size, and data distribution influence the relative performance of join algorithms.
