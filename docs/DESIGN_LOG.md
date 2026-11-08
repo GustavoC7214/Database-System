@@ -703,23 +703,493 @@ The memory stress test completed successfully with a maximum observed shared-fra
 
 The implementation and experiments were committed as `78741d9` and pushed to the repository's `develop` branch.
 
-## Module 3 — SQL Front End Specification Review (2026-11-05)
+## October 29th - November 5th 2026 — Project 2, Module 3: SQL Front End
 
-The professor confirmed by email that the seven translation examples in
-Section 5 are the authoritative logical-plan JSON schema and that no
-separate schema or sample catalog will be posted. The Module 1 catalog
-is reused for semantic analysis.
+### Goal
 
-The SQL compiler emits bag-preserving projections, explicit `distinct`
-for ordinary `SELECT DISTINCT`, and no redundant `distinct` above a
-`group_by` result.
+Implement a SQL front end that accepts the supported SQL language, converts statements into an abstract syntax tree, validates queries against the existing database catalog, and produces logical query plans in JSON format.
 
-A repeated aggregate is computed once, with positional projection output
-metadata retaining multiple requested aliases.
+The implementation needed to reuse the Module 1 catalog and provide logical operator trees that could be consumed by later query optimization and execution components.
 
-Added regression tests for grouped DISTINCT, implicit aggregate grouping,
-and repeated aggregate aliases.
+### What I Did
 
-The `ORDER BY` nonselected-column case remains a documented plan-shape
-ambiguity because Section 5 requires sort above projection without
-defining a hidden sort-key representation.
+I implemented the SQL front end in `src/sql/`, including:
+
+- A handwritten tokenizer that recognizes SQL keywords, identifiers, integer and string literals, comparison operators, punctuation, whitespace, and comments.
+- A recursive-descent parser that constructs immutable SQL abstract syntax trees.
+- AST representations for SELECT queries, joins, derived tables, aggregate expressions, set operations, CREATE TABLE, and INSERT statements.
+- A read-only schema adapter over the existing Module 1 catalog.
+- Semantic analysis for table names, column names, aliases, types, aggregation, grouping, and query output schemas.
+- A logical-plan compiler that produces JSON-serializable operator trees.
+- Command-line operations for parsing, semantic checking, and logical-plan compilation.
+
+The SQL front end supports the following query constructs:
+
+- SELECT and SELECT DISTINCT.
+- WHERE conditions with AND, OR, and NOT.
+- Qualified and unqualified column references.
+- Table aliases, explicit joins, and cross products.
+- Derived tables.
+- GROUP BY and HAVING.
+- COUNT, SUM, AVG, MIN, and MAX.
+- ORDER BY with ASC and DESC.
+- LIMIT.
+- UNION, UNION ALL, INTERSECT, and EXCEPT.
+
+The parser also recognizes CREATE TABLE and INSERT statements, although the semantic-checking and logical-compilation commands are restricted to query statements.
+
+### Design Decisions
+
+**1. Separate tokenization, parsing, semantic analysis, and compilation**
+
+I divided the SQL front end into independent processing stages:
+
+`SQL text -> tokens -> AST -> semantic analysis -> logical plan`
+
+This allows lexical, syntax, name-resolution, type, and compilation problems to be tested separately.
+
+The tokenizer and parser do not access the database catalog. Catalog-dependent validation happens during semantic analysis.
+
+**2. Use a handwritten tokenizer and recursive-descent parser**
+
+I implemented tokenization without regular expressions or parser generators.
+
+The tokenizer tracks line and column positions so errors can identify the location of invalid input.
+
+The recursive-descent parser uses separate methods for SQL statements, query expressions, table references, aggregates, and Boolean conditions.
+
+Boolean expressions follow the precedence:
+
+`NOT > AND > OR`
+
+The parser also constructs left-associative set-operation trees and supports parentheses to override grouping.
+
+**3. Represent SQL using immutable AST nodes**
+
+I used frozen dataclasses with slots to represent SQL syntax.
+
+Separate AST nodes represent columns, literals, aggregates, comparisons, logical conditions, table references, SELECT queries, and set operations.
+
+This keeps parsing separate from semantic interpretation and prevents later stages from accidentally modifying the parsed query structure.
+
+**4. Reuse the Module 1 catalog**
+
+I implemented `SchemaCatalog` as a read-only adapter over the existing persistent catalog.
+
+The adapter provides ordered table schemas and declared column types without changing the storage engine's catalog format.
+
+Semantic analysis uses this metadata to validate table and column references.
+
+**5. Resolve names before compiling logical plans**
+
+The semantic analyzer builds a scope containing the tables and aliases available to each query.
+
+Qualified references are resolved against their specified table or alias.
+
+Unqualified references must match exactly one column in the current scope.
+
+Unknown tables, unknown columns, duplicate table aliases, and ambiguous column references produce explicit errors.
+
+Derived-table output columns are also validated before being added to the enclosing query scope.
+
+**6. Validate SQL types and aggregate usage**
+
+The semantic analyzer checks comparison operand compatibility and validates aggregate arguments.
+
+COUNT returns an integer result, while SUM and AVG require integer arguments in the supported SQL subset.
+
+MIN and MAX preserve the argument's declared type.
+
+For grouped queries, selected nonaggregate columns must appear in GROUP BY.
+
+The analyzer also validates HAVING conditions and checks that set-operation inputs have matching column counts and compatible types.
+
+**7. Preserve SQL projection and duplicate semantics**
+
+Ordinary SELECT projections preserve duplicate rows at the logical-plan level.
+
+SELECT DISTINCT introduces an explicit distinct operator when the query is not aggregating.
+
+Grouping already produces one row per group, so the compiler avoids adding a redundant distinct operator above a grouped result.
+
+This keeps duplicate elimination explicit rather than treating every projection as a set operation.
+
+**8. Represent repeated aggregates only once**
+
+The compiler identifies repeated aggregate expressions and registers each distinct aggregate once in the group_by operator.
+
+For example, if the same COUNT expression appears more than once under different output aliases, the aggregate is computed once.
+
+The projection preserves the requested output positions and aliases so multiple requested columns can refer to the same aggregate result.
+
+**9. Preserve required operator ordering**
+
+The compiler constructs logical plans from the SQL query clauses.
+
+FROM establishes the input relation tree, followed by WHERE filtering, grouping, HAVING filtering, projection, duplicate elimination where required, sorting, and LIMIT.
+
+A special case is required for ORDER BY on a column that is not selected.
+
+Because the nonselected sort key would otherwise be unavailable after projection, the implementation places the sort below the projection when necessary.
+
+ORDER BY on selected columns or output aliases can remain above the projection.
+
+**10. Keep Module 3 independent of physical execution**
+
+The SQL compiler produces logical operator dictionaries rather than choosing physical join algorithms or executing queries.
+
+Physical optimization and operator selection are handled separately by Module 4 and the Module 2 execution engine.
+
+This avoids mixing SQL language semantics with execution-cost decisions.
+
+### Problems / AI Assistance
+
+AI assistance was used during the broader project development and documentation process. The following issues are supported by the Module 3 implementation, regression tests, and recorded specification review.
+
+**1. Clarifying the authoritative logical-plan schema**
+
+The available Module 3 specification did not provide a separate logical-plan schema or sample catalog beyond the translation examples.
+
+On November 5, the professor confirmed by email that the seven translation examples in Section 5 were the authoritative logical-plan JSON schema and that the existing Module 1 catalog should be reused.
+
+I used this clarification to guide the compiler's output structure rather than introducing an independent catalog or incompatible logical-plan representation.
+
+**2. Preserving duplicate semantics and aggregate aliases**
+
+SQL projection semantics required particular care because ordinary SELECT does not automatically remove duplicate rows.
+
+The implementation preserves bag semantics and inserts distinct only when required.
+
+Another issue involved repeated aggregate expressions with different output aliases.
+
+A simple mapping from aggregate expressions to output names cannot represent multiple requested output positions correctly.
+
+I used positional projection metadata to preserve the requested aliases while computing each repeated aggregate only once.
+
+Regression tests cover grouped DISTINCT, implicit aggregate grouping, and repeated aggregate aliases.
+
+**3. Handling ORDER BY on a nonselected column**
+
+The specification's logical-plan examples placed sorting above projection but did not define a representation for hidden sort keys.
+
+This creates a plan-shape ambiguity for queries that sort by columns omitted from the SELECT list.
+
+The implementation handles this by placing sorting before projection when the sort key would otherwise be unavailable.
+
+It also rejects ORDER BY on a nonselected column in combination with DISTINCT when that ordering cannot be represented safely in the supported logical-plan format.
+
+This remains a documented difference between the straightforward clause-to-operator translation and the special handling required for nonselected sort keys.
+
+### Testing
+
+I implemented six dedicated Module 3 test files:
+
+- `tests/test_sql_tokenizer.py`
+- `tests/test_sql_parser.py`
+- `tests/test_sql_catalog.py`
+- `tests/test_sql_semantic.py`
+- `tests/test_sql_compiler.py`
+- `tests/test_sql_cli.py`
+
+The source contains 173 test functions across these files, including parametrized tests that may expand into additional pytest cases.
+
+**Tokenizer tests** cover comments, string literals, escaped quotes, operators, multiple statements, source positions, and invalid input.
+
+**Parser tests** cover supported SQL statements, nested queries, joins, Boolean precedence, grouping, aggregates, set operations, and malformed syntax.
+
+**Catalog tests** verify schema retrieval, column order, declared types, case-sensitive names, unknown tables, and missing database files.
+
+**Semantic tests** cover name resolution, ambiguity, type checking, grouping rules, aggregate validation, derived tables, and set-operation compatibility.
+
+**Compiler tests** verify logical operator trees, projections, joins, grouping, aliases, sorting, LIMIT, DISTINCT, and set operations.
+
+**CLI tests** cover parsing, AST display, semantic checking, JSON compilation, source files, error formatting, and unsupported statement types.
+
+The dedicated Module 3 tests are also included in the complete repository regression suite.
+
+### Command-Line Interface
+
+The SQL front end provides three command-line operations.
+
+**Parse:** Convert SQL text into an AST and optionally display the tree.
+
+**Check:** Validate query names, types, grouping rules, and other supported semantic constraints against an existing database catalog.
+
+**Compile:** Produce logical operator trees serialized as JSON.
+
+The interface accepts SQL text directly or from a file.
+
+Errors are reported using categories such as lexical, syntax, name, ambiguity, type, aggregate, and schema errors, with source locations where available.
+
+### Results and Design Observations
+
+The Module 3 implementation establishes a complete path from SQL source text to semantically validated logical operator trees.
+
+The separation between parsing, semantic analysis, and compilation makes it possible to identify errors before generating an execution plan.
+
+Reusing the Module 1 catalog avoids duplicating schema metadata and ensures that SQL name resolution uses the same table definitions as the storage engine.
+
+The logical-plan compiler also provides the foundation for Module 4, which can apply logical rewrites, estimate costs, reorder supported joins, and lower eligible plans into physical execution operators.
+
+The implementation deliberately supports a defined SQL subset rather than attempting unrestricted SQL compatibility.
+
+In particular, CREATE TABLE and INSERT are recognized by the parser but are not compiled by the SELECT-oriented logical compiler.
+
+The ORDER BY nonselected-column case remains a documented plan-format limitation.
+
+Overall, Module 3 connects the storage engine's persistent schema information to a structured SQL query representation that later optimizer components can process.
+
+## November 5–8, 2026 — Project 2, Module 4: Cost-Based Query Optimizer
+
+### Goal
+
+Implement a cost-based query optimizer that uses persistent database statistics to estimate query cardinalities, apply logical query rewrites, choose efficient join orders, and select physical execution algorithms.
+
+The optimizer needed to integrate with the Module 1 storage engine, Module 2 execution operators, and Module 3 SQL logical plans while preserving query correctness.
+
+### What I Did
+
+I implemented the optimizer in `src/optimizer/`, including:
+
+- Persistent table and column statistics collected through `ANALYZE`.
+- Equi-depth histograms, distinct-value counts, minimum and maximum values, tuple counts, page counts, and average record widths.
+- Equality, range, Boolean, and equijoin selectivity estimation.
+- Recursive logical-plan cardinality and page-count estimation.
+- Analytical page-I/O cost formulas for scans, external sorting, block nested-loop joins, hash joins, and sort-merge joins.
+- Deterministic left-deep dynamic programming join ordering for two to six tables.
+- Logical selection rewrites, including predicate splitting, pushdown, and supported cross-product-to-join conversions.
+- Dependency-aware projection pushdown and redundant projection cleanup.
+- Conservative SQL logical-plan integration.
+- Cost-based physical plan lowering to the existing Module 2 execution operators.
+- Deterministic fallback estimates when `ANALYZE` statistics are unavailable.
+
+I also implemented experiments to compare baseline and optimized execution, measure cardinality estimation accuracy, isolate individual optimization passes, and investigate the effects of correlated predicates.
+
+### Design Decisions
+
+**1. Store statistics separately from the catalog**
+
+I stored statistics in versioned JSON files under `optimizer_stats/` rather than changing the existing Module 1 catalog format.
+
+This keeps statistics independent of catalog record-size restrictions and allows the optimizer to be added without modifying the original storage metadata design.
+
+Statistics files are written using temporary files and atomic replacement to avoid leaving partially written results.
+
+**2. Use equi-depth histograms and NDV-based estimates**
+
+I used equi-depth histograms to improve selectivity estimation beyond fixed default values.
+
+Equality predicates use histogram frequencies when possible and fall back to `1 / NDV`.
+
+Numerical range predicates use interpolation, while unsupported or missing statistics use documented fallback selectivities.
+
+I accepted the limitation that independent column histograms do not capture correlations between different attributes.
+
+**3. Measure costs in estimated page I/O**
+
+I chose page reads and writes as the optimizer's analytical cost unit instead of elapsed time.
+
+This allows the optimizer to compare execution algorithms without depending on machine-specific timing measurements.
+
+I kept analytical costs separate from actual buffer-manager counters because caching and operator implementation details can cause the two measurements to differ.
+
+**4. Restrict join ordering to connected left-deep plans**
+
+I implemented dynamic programming over connected table subsets, retaining one cheapest candidate per subset.
+
+The search supports two to six tables and uses deterministic tie-breaking.
+
+I restricted the search to left-deep plans rather than attempting to enumerate arbitrary bushy trees.
+
+For intermediate joins, I also ensured that nested-loop costing does not assume an input reversal that would violate the required left-deep plan structure.
+
+**5. Apply logical rewrites conservatively**
+
+Selection predicates are pushed down only when their referenced columns can be resolved safely.
+
+Projection pushdown preserves columns needed by selections, joins, sorting, and final output.
+
+Unsupported or ambiguous transformations retain the original plan rather than risking incorrect query results.
+
+**6. Separate logical optimization from physical lowering**
+
+The logical optimization pipeline produces transformed logical plans.
+
+Physical lowering separately chooses executable operators and validates whether the logical plan is supported by the Module 2 execution engine.
+
+This separation makes the optimizer easier to test and allows unsupported physical plans to be rejected explicitly.
+
+**7. Preserve deterministic behavior**
+
+I used deterministic dataset generation, sorted DP inputs, stable tie-breaking, and repeatable experiment configurations.
+
+This makes optimizer decisions and benchmark results reproducible.
+
+### Problems / AI Assistance
+
+AI assistance was used to review the optimizer architecture, develop implementation and regression tests, construct experiments, and interpret the resulting measurements.
+
+I identified and corrected two significant issues during this process.
+
+**1. Incorrect assumption that a cardinality error necessarily caused a worse physical plan**
+
+During the initial cardinality evaluation, query Q20 showed a q-error of 3.333 for a filter involving the correlated columns `region` and `tier`.
+
+The initial AI-assisted interpretation treated this estimation error as evidence that the optimizer had selected an inefficient physical join algorithm.
+
+However, the observed cardinality error alone did not establish that the physical plan was different or that execution cost had increased.
+
+I investigated this by searching approximately 8,000 configurations around the original workload. None demonstrated the required physical algorithm change for that specific case.
+
+I then developed a broader analytical search, which identified 826 configurations where changing cardinality estimates could change the preferred algorithm.
+
+Rather than presenting the analytical search as measured evidence, I constructed a separate deterministic correlated-column database and executed both the original and corrected plans.
+
+The new experiment used 25,000 Customers rows and 6,000 Orders rows, with perfect correlation between `region` and `tier`.
+
+The optimizer estimated 251 filtered Customers rows when the actual result contained 2,500 rows, giving a q-error of approximately 9.96.
+
+At four buffer frames, the original estimate selected a nested-loop join, while the corrected estimate selected a hash join.
+
+Both plans returned 600 rows, but the original plan recorded 159 buffer reads compared with 157 for the corrected plan.
+
+This provided actual execution evidence of a cardinality-driven plan-selection difference.
+
+I learned that an inaccurate estimate does not automatically imply an inefficient physical plan. A convincing optimizer failure case must demonstrate the causal relationship between the estimate, the selected plan, and measured execution behavior.
+
+**2. Regression tests depended on an externally generated experiment database**
+
+An initial version of the correlated-column regression tests expected the experiment database to have already been generated.
+
+This made the tests dependent on local experiment files and could cause failures when running the test suite in a clean checkout.
+
+I corrected the tests by introducing a module-scoped pytest fixture that creates a temporary database, generates the correlated tables, and collects the required statistics.
+
+The tests now prepare their own input data and do not depend on a previously executed benchmark.
+
+Seven dedicated correlation tests passed after this change.
+
+I learned that regression tests should create or explicitly manage their dependencies rather than relying on artifacts left behind by manual experiments.
+
+### Testing
+
+I implemented and ran tests covering:
+
+- Statistics validation, persistence, and loading.
+- Histogram and selectivity estimation.
+- Cardinality and page-count estimation.
+- Physical cost formulas.
+- Deterministic dynamic programming join ordering.
+- SQL join-order integration.
+- Logical selection and projection rewrites.
+- Physical plan lowering and execution.
+- Missing-statistics fallback behavior.
+- Optimized versus baseline query-result equivalence.
+- Correlated-column estimation and physical plan selection.
+
+After completing the implementation and regression review, I ran:
+
+```bash
+python3 -m ruff check .
+python3 -m ruff format --check .
+python3 -m pytest tests/ -q
+```
+
+Results:
+
+```text
+All checks passed!
+213 files already formatted
+1470 passed in 23.46s
+```
+
+All 1,470 tests passed, and both Ruff checks completed successfully.
+
+### Experiments
+
+I completed the following experiments.
+
+**1. Baseline versus optimized execution**
+
+I evaluated 20 queries on two deterministic datasets.
+
+The 1× dataset contained 3,120 rows across four tables, while the 10× dataset contained 31,200 rows.
+
+Aggregate physical buffer reads were unchanged between baseline and optimized execution:
+
+- 1× dataset: 219 reads in both configurations.
+- 10× dataset: 1,245 reads in both configurations.
+
+This showed that logical optimization does not necessarily reduce physical reads when buffer caching and workload characteristics dominate the measured I/O.
+
+**2. Optimizer ablation study**
+
+I compared five configurations: fully optimized, no selection rewrites, no projection pushdown, no projection cleanup, and no join ordering.
+
+All 200 configuration-query-scale evaluations completed successfully.
+
+Projection pushdown had the largest measurable effect on operator-level reads.
+
+On the 10× dataset, disabling projection pushdown increased operator reads from 2,063 to 2,784.
+
+Disabling selection rewrites increased operator reads from 2,063 to 2,136.
+
+Disabling projection cleanup or join ordering did not change aggregate reads in the tested workload.
+
+**3. Cardinality estimation accuracy**
+
+I evaluated cardinality estimates across 77 plan nodes for the 20-query workload at both dataset scales.
+
+The median q-error was 1.000, and the worst q-error was 3.333.
+
+The largest error occurred when filtering correlated columns, demonstrating the limitations of the independence assumption.
+
+**4. Four-relation dynamic programming demonstration**
+
+I generated a DP table using the stored statistics from the 1× benchmark database.
+
+The four tables were Customers, Orders, Payments, and Shipments.
+
+Using 32 buffer frames, the optimizer selected:
+
+`Customers -> Orders -> Payments -> Shipments`
+
+The selected plan had:
+
+- 960 estimated output rows.
+- 15 estimated output pages.
+- An analytical I/O cost of 37.
+
+The generated DP table demonstrated connected-subset enumeration, deterministic plan selection, and retention of intermediate estimates.
+
+**5. Controlled correlated-column failure**
+
+I generated a separate database with 25,000 correlated Customers rows and 6,000 Orders rows.
+
+The filtered Customers cardinality was underestimated by approximately 9.96×.
+
+At four buffer frames, correcting the estimate changed the selected algorithm from nested-loop join to hash join.
+
+The corrected plan reduced measured buffer reads from 159 to 157, approximately 1.26%, while preserving the same 600 output rows.
+
+At eight, sixteen, and thirty-two frames, both configurations selected nested-loop joins and recorded the same buffer-read count.
+
+### Results and Design Observations
+
+The experiments showed that projection pushdown provided the largest reduction in operator-level work, particularly at the larger dataset scale.
+
+Selection rewrites also reduced operator reads, although the physical buffer-read totals remained unchanged.
+
+The join-order optimizer successfully generated a deterministic four-relation left-deep plan, but the benchmark workload did not demonstrate a measurable aggregate I/O improvement from join reordering.
+
+The correlated-column experiment demonstrated that independent single-column statistics can lead to substantial cardinality errors and, under suitable buffer constraints, a different physical join algorithm.
+
+I also observed that the analytical cost model is an approximation. Actual execution behavior depends on caching, operator implementation, and available buffer frames.
+
+The complete optimizer design is documented in `docs/DESIGN_M4.md`, and the experimental methodology and results are documented in `docs/REPORT_M4.md`.
+
+### Next Steps
+
+Perform a final consistency review of the Module 4 source code, tests, experiment artifacts, and documentation.
+
+Verify the required submission files, rerun Ruff and pytest, and commit the completed Module 4 implementation only after the final review.

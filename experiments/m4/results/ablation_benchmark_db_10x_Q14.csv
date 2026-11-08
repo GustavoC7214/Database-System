@@ -1,0 +1,6 @@
+query,configuration,rows,buffer_reads,buffer_writes,total_io,operator_reads,tuples_in
+Q14,fully_optimized,2400,65,0,65,101,0
+Q14,no_selection_rewrites,2400,65,0,65,106,0
+Q14,no_projection_pushdown,2400,65,0,65,116,0
+Q14,no_projection_cleanup,2400,65,0,65,101,0
+Q14,no_join_ordering,2400,65,0,65,101,0
