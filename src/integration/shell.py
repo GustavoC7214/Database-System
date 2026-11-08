@@ -17,11 +17,22 @@ def format_result(result) -> None:
 
     print(result.message)
 
+    if result.estimated_rows is not None:
+        print(f"Estimated root cardinality: {result.estimated_rows}")
+
+    if result.actual_rows is not None:
+        print(f"Actual root cardinality: {result.actual_rows}")
+
     if result.estimated_io is not None:
         print(f"Estimated I/O: {result.estimated_io}")
 
     if result.actual_io is not None and result.estimated_io is not None:
         print(f"Actual I/O: {result.actual_io}")
+
+    if result.execution_time_ms is not None:
+        print(f"Execution time: {result.execution_time_ms:.3f} ms")
+
+    if result.counters is not None and result.estimated_io is not None:
         print(f"Execution counters: {result.counters}")
 
 

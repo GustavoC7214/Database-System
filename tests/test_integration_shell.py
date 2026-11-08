@@ -268,3 +268,75 @@ def test_shell_recovers_after_error(tmp_path):
     assert "Error:" in result.stderr
     assert "42" in result.stdout
     assert "Returned 1 rows" in result.stdout
+
+
+def test_explain_reports_estimated_root_cardinality(engine):
+    from src.sql.parser import parse_sql
+
+    engine.execute_sql("CREATE TABLE Numbers (id INT);")
+    engine.execute_sql("INSERT INTO Numbers VALUES (1);")
+    engine.execute_sql("INSERT INTO Numbers VALUES (2);")
+    engine.analyze("Numbers")
+
+    statement = parse_sql("SELECT * FROM Numbers;")[0]
+    result = engine.query(statement, explain=True, execute=False)
+
+    assert result.estimated_rows is not None
+    assert result.estimated_rows >= 0
+    assert result.actual_rows is None
+    assert result.execution_time_ms is None
+
+
+def test_explain_analyze_reports_cardinality_and_timing(engine):
+    from src.sql.parser import parse_sql
+
+    engine.execute_sql("CREATE TABLE Numbers (id INT);")
+    engine.execute_sql("INSERT INTO Numbers VALUES (1);")
+    engine.execute_sql("INSERT INTO Numbers VALUES (2);")
+    engine.analyze("Numbers")
+
+    statement = parse_sql("SELECT * FROM Numbers;")[0]
+    result = engine.query(statement, explain=True, execute=True)
+
+    assert result.estimated_rows == 2
+    assert result.actual_rows == 2
+    assert result.execution_time_ms is not None
+    assert result.execution_time_ms >= 0
+    assert result.actual_io is not None
+
+
+def test_filtered_query_reports_actual_root_cardinality(engine):
+    from src.sql.parser import parse_sql
+
+    engine.execute_sql("CREATE TABLE Numbers (id INT);")
+    engine.execute_sql("INSERT INTO Numbers VALUES (1);")
+    engine.execute_sql("INSERT INTO Numbers VALUES (2);")
+    engine.execute_sql("INSERT INTO Numbers VALUES (3);")
+    engine.analyze("Numbers")
+
+    statement = parse_sql("SELECT id FROM Numbers WHERE id > 1;")[0]
+
+    result = engine.query(statement, explain=True, execute=True)
+
+    assert result.rows == [(2,), (3,)]
+    assert result.actual_rows == 2
+    assert result.counters["tuples_out"] == 2
+
+
+def test_shell_displays_execution_metrics(engine, capsys):
+    engine.execute_sql("CREATE TABLE Numbers (id INT);")
+    engine.execute_sql("INSERT INTO Numbers VALUES (42);")
+    engine.analyze("Numbers")
+
+    run_command(
+        engine,
+        "EXPLAIN ANALYZE SELECT * FROM Numbers;",
+    )
+
+    output = capsys.readouterr().out
+
+    assert "Estimated root cardinality:" in output
+    assert "Actual root cardinality: 1" in output
+    assert "Estimated I/O:" in output
+    assert "Actual I/O:" in output
+    assert "Execution time:" in output

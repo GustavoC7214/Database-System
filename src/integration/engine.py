@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from pathlib import Path
+from time import perf_counter
 
 from src.execution.plan_executor import PhysicalPlanExecutor
 from src.optimizer.analyze import analyze_table
@@ -27,6 +28,9 @@ class QueryResult:
     estimated_io: float | None = None
     actual_io: int | None = None
     counters: dict | None = None
+    estimated_rows: int | None = None
+    actual_rows: int | None = None
+    execution_time_ms: float | None = None
 
 
 class DatabaseEngine:
@@ -134,34 +138,47 @@ class DatabaseEngine:
             frames=self.frames,
         )
 
-        estimated = None
+        estimated_io = None
+        estimated_rows = None
+
         if explain:
-            estimated = (
-                PhysicalCostEstimator(
-                    statistics,
-                    frames=self.frames,
-                    table_columns=columns,
-                )
-                .estimate(plan)
-                .total_io
-            )
+            costed_plan = PhysicalCostEstimator(
+                statistics,
+                frames=self.frames,
+                table_columns=columns,
+            ).estimate(plan)
+
+            estimated_io = costed_plan.total_io
+            estimated_rows = costed_plan.rows
 
         if not execute:
             return QueryResult(
                 message=f"Physical plan:\n{__import__('json').dumps(physical, indent=2)}",
-                estimated_io=estimated,
+                estimated_io=estimated_io,
+                estimated_rows=estimated_rows,
             )
 
-        result = PhysicalPlanExecutor(self.db_dir, frames=self.frames).execute(physical)
+        start_time = perf_counter()
+
+        result = PhysicalPlanExecutor(
+            self.db_dir,
+            frames=self.frames,
+        ).execute(physical)
+
+        execution_time_ms = (perf_counter() - start_time) * 1000.0
 
         counters = result.counters
+
         return QueryResult(
             message=f"Returned {len(result.rows)} rows",
             columns=[name for name, _ in result.schema],
             rows=result.rows,
-            estimated_io=estimated,
+            estimated_io=estimated_io,
             actual_io=counters["page_reads"] + counters["page_writes"],
             counters=counters,
+            estimated_rows=estimated_rows,
+            actual_rows=counters["tuples_out"],
+            execution_time_ms=execution_time_ms,
         )
 
     def execute_sql(self, source: str) -> list[QueryResult]:
