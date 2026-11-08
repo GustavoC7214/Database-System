@@ -61,7 +61,7 @@ class Parser:
     def parse_set_expression(self) -> Expression:
         left = self.parse_product_expression()
 
-        while(
+        while (
             self.check_keyword("union")
             or self.check_keyword("intersect")
             or self.check_keyword("minus")
@@ -69,20 +69,15 @@ class Parser:
             operator_token = self.advance()
             right = self.parse_product_expression()
             left = BinaryExpression(
-                left = left,
-                operator = BinaryOperator(operator_token.value),
-                right = right
+                left=left, operator=BinaryOperator(operator_token.value), right=right
             )
-        
+
         return left
 
     def parse_product_expression(self) -> Expression:
         left = self.parse_primary_expression()
 
-        while (
-            self.check_keyword("times")
-            or self.check_keyword("join")
-        ):
+        while self.check_keyword("times") or self.check_keyword("join"):
             operator_token = self.advance()
             if operator_token.value == "join":
                 self.expect(TokenType.LBRACKET)
@@ -91,46 +86,34 @@ class Parser:
 
                 right = self.parse_primary_expression()
 
-                left = Join(
-                    left = left,
-                    condition = condition,
-                    right = right
-                )
+                left = Join(left=left, condition=condition, right=right)
             else:
                 right = self.parse_primary_expression()
 
                 left = BinaryExpression(
-                    left = left,
-                    operator = BinaryOperator(operator_token.value),
-                    right = right
+                    left=left,
+                    operator=BinaryOperator(operator_token.value),
+                    right=right,
                 )
 
         return left
 
     def parse_primary_expression(self) -> Expression:
-        if (
-            self.check_keyword("distinct")
-            and self.peek_next().type == TokenType.LPAREN
-        ):
+        if self.check_keyword("distinct") and self.peek_next().type == TokenType.LPAREN:
             return self.parse_distinct_expression()
-        if (
-            self.check_keyword("select")
+        if self.check_keyword("select") and self.peek_next().type == TokenType.LBRACKET:
+            return self.parse_select_expression()
+        elif (
+            self.check_keyword("project")
             and self.peek_next().type == TokenType.LBRACKET
         ):
-            return self.parse_select_expression()
-        elif (self.check_keyword("project")
-              and self.peek_next().type == TokenType.LBRACKET
-        ):
             return self.parse_project_expression()
-        elif (self.check_keyword("rename")
-              and self.peek_next().type == TokenType.LBRACKET
-              ):
-            return self.parse_rename_expression()
-        elif (self.check_keyword("sort")
-              and self.peek_next().type == TokenType.LBRACKET
+        elif (
+            self.check_keyword("rename") and self.peek_next().type == TokenType.LBRACKET
         ):
+            return self.parse_rename_expression()
+        elif self.check_keyword("sort") and self.peek_next().type == TokenType.LBRACKET:
             return self.parse_sort_expression()
-        
 
         if self.match(TokenType.LPAREN):
             expression = self.parse_expression()
@@ -143,7 +126,7 @@ class Parser:
         token = self.peek()
         raise ParseError(
             f"Expected expression, but found {token.type},"
-            f'at line {token.position.line}, column {token.position.column}'
+            f"at line {token.position.line}, column {token.position.column}"
         )
 
     def parse_distinct_expression(self) -> Expression:
@@ -180,7 +163,7 @@ class Parser:
             direction=SortDictionary(direction_token.value),
             expression=expression,
         )
-    
+
     def parse_select_expression(self) -> Expression:
         self.match_keyword("select")
         self.expect(TokenType.LBRACKET)
@@ -190,10 +173,7 @@ class Parser:
         expression = self.parse_expression()
         self.expect(TokenType.RPAREN)
 
-        return Select(
-            condition = condition,
-            expression = expression
-        )
+        return Select(condition=condition, expression=expression)
 
     def parse_project_expression(self) -> Expression:
         self.match_keyword("project")
@@ -204,10 +184,7 @@ class Parser:
         expression = self.parse_expression()
         self.expect(TokenType.RPAREN)
 
-        return Project(
-            attributes = attributes,
-            expression = expression
-        )
+        return Project(attributes=attributes, expression=expression)
 
     def parse_rename_expression(self) -> Expression:
         self.match_keyword("rename")
@@ -218,10 +195,7 @@ class Parser:
         expression = self.parse_expression()
         self.expect(TokenType.RPAREN)
 
-        return Rename(
-            new_name = new_name.value,
-            expression = expression
-        )
+        return Rename(new_name=new_name.value, expression=expression)
 
     def parse_attribute(self) -> AttributeReference:
         first = self.expect(TokenType.IDENTIFIER)
@@ -229,14 +203,9 @@ class Parser:
         if self.match(TokenType.DOT):
             second = self.expect(TokenType.IDENTIFIER)
 
-            return AttributeReference(
-                name = second.value,
-                relation = first.value
-            )
+            return AttributeReference(name=second.value, relation=first.value)
 
-        return AttributeReference(
-            name = first.value
-        )
+        return AttributeReference(name=first.value)
 
     def parse_attribute_list(self) -> list[AttributeReference]:
         attributes = [self.parse_attribute()]
@@ -256,10 +225,8 @@ class Parser:
             self.advance()
             right = self.parse_and_condition()
 
-            left = BooleanBinaryCondition (
-                left = left,
-                operator = BooleanOperator.OR,
-                right = right
+            left = BooleanBinaryCondition(
+                left=left, operator=BooleanOperator.OR, right=right
             )
         return left
 
@@ -271,24 +238,19 @@ class Parser:
             right = self.parse_not_condition()
 
             left = BooleanBinaryCondition(
-                left = left,
-                operator = BooleanOperator.AND,
-                right = right
+                left=left, operator=BooleanOperator.AND, right=right
             )
 
         return left
 
     def parse_not_condition(self) -> Condition:
-        if (
-            self.check_keyword("not")
-            and self.peek_next().type not in (
+        if self.check_keyword("not") and self.peek_next().type not in (
             TokenType.COMPARISON_OPERATOR,
-            TokenType.DOT
-            )
+            TokenType.DOT,
         ):
             self.advance()
             condition = self.parse_not_condition()
-            return Not(condition = condition)
+            return Not(condition=condition)
 
         return self.parse_condition_primary()
 
@@ -306,19 +268,17 @@ class Parser:
         right = self.parse_operand()
 
         return Comparison(
-            left = left,
-            operator = ComparisonOperator(operator_token.value),
-            right = right
+            left=left, operator=ComparisonOperator(operator_token.value), right=right
         )
 
     def parse_operand(self) -> Operand:
         if self.check(TokenType.NUMBER):
             token = self.advance()
-            return NumberLiteral(value = int(token.value))
+            return NumberLiteral(value=int(token.value))
 
         if self.check(TokenType.STRING):
             token = self.advance()
-            return StringLiteral(value = token.value)
+            return StringLiteral(value=token.value)
 
         if self.check(TokenType.IDENTIFIER):
             return self.parse_attribute()
@@ -376,22 +336,15 @@ class Parser:
             rows.append(row)
 
         self.expect(TokenType.RBRACE)
-        return RelationDefinition(
-            name = name.value,
-            attributes= attributes,
-            rows= rows
-        )
+        return RelationDefinition(name=name.value, attributes=attributes, rows=rows)
 
     def parse_attribute_name_list(self) -> list[str]:
         attributes = [self.expect(TokenType.IDENTIFIER).value]
 
         while self.match(TokenType.COMMA):
-            attributes.append(
-                self.expect(TokenType.IDENTIFIER).value
-        )
+            attributes.append(self.expect(TokenType.IDENTIFIER).value)
 
         return attributes
-
 
     # Helper Functions
 

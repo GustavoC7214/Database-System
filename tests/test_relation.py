@@ -9,11 +9,13 @@ def test_identical_rows_are_equal():
 
     assert row1 == row2
 
+
 def test_rows_with_different_values_are_not_equal():
     row1 = Row(["E1", "John", 32])
     row2 = Row(["E1", "John", 28])
 
     assert row1 != row2
+
 
 def test_rows_with_different_value_types_are_not_equal():
     row1 = Row(["1"])
@@ -21,17 +23,19 @@ def test_rows_with_different_value_types_are_not_equal():
 
     assert row1 != row2
 
+
 def test_rows_with_different_lengths_are_not_equal():
     row1 = Row(["E1", "John", 32])
     row2 = Row(["E1", "John"])
 
     assert row1 != row2
 
+
 def test_relation_rejects_row_with_wrong_number_of_values():
     attributes = [
-    Attribute("Employees", "E1"),
-    Attribute("Employees", "John"),
-    Attribute("Employees", "20"),
+        Attribute("Employees", "E1"),
+        Attribute("Employees", "John"),
+        Attribute("Employees", "20"),
     ]
     row = Row(["E1", "John"])
 
@@ -41,9 +45,9 @@ def test_relation_rejects_row_with_wrong_number_of_values():
 
 def test_relations_preserve_duplicate_rows():
     attributes = [
-    Attribute("Employees", "E1"),
-    Attribute("Employees", "Alice"),
-    Attribute("Employees", "18")
+        Attribute("Employees", "E1"),
+        Attribute("Employees", "Alice"),
+        Attribute("Employees", "18"),
     ]
     row1 = Row(["E1", "John", 32])
     row2 = Row(["E1", "John", 32])

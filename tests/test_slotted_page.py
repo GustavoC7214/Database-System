@@ -1,4 +1,3 @@
-
 import pytest
 
 from src.storage.slotted_page import SlottedPage

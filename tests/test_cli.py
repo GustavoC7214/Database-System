@@ -161,10 +161,7 @@ def test_query_requires_file():
 
     assert result.returncode == 1
     assert result.stdout == ""
-    assert (
-        "Usage Error: --file is required when executing a query."
-        in result.stderr
-    )
+    assert "Usage Error: --file is required when executing a query." in result.stderr
     assert "Traceback" not in result.stderr
 
 

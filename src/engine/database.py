@@ -9,7 +9,7 @@ class Database:
         self.relations: dict[str, Relation] = {}
 
     def add_relation(self, relation: Relation) -> None:
-        self.relations[relation.name] =  relation
+        self.relations[relation.name] = relation
 
     def get_relation(self, name: str) -> Relation:
         try:
@@ -21,7 +21,9 @@ class Database:
         yield from self.get_relation(name).rows
 
     def load_definition(self, definition: RelationDefinition) -> None:
-        attributes = [Attribute(definition.name, name) for name in definition.attributes]
+        attributes = [
+            Attribute(definition.name, name) for name in definition.attributes
+        ]
         rows = [Row(values) for values in definition.rows]
         relation = Relation(definition.name, attributes, rows)
 

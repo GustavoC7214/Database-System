@@ -3,6 +3,7 @@ from enum import Enum
 
 RelationValue = int | str
 
+
 class ComparisonOperator(Enum):
     EQUAL = "="
     NOT_EQUAL = "!="
@@ -96,9 +97,11 @@ class Project(Expression):
     attributes: list[AttributeReference]
     expression: Expression
 
+
 @dataclass
 class Distinct(Expression):
     expression: Expression
+
 
 @dataclass
 class Rename(Expression):
@@ -133,4 +136,3 @@ class Sort(Expression):
     attribute: AttributeReference
     direction: SortDictionary
     expression: Expression
-    

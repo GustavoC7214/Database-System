@@ -1,4 +1,3 @@
-
 import json
 
 import pytest
@@ -10,12 +9,17 @@ from src.storage.record_codec import decode_record
 
 
 def test_create_table_command(tmp_path, capsys):
-    result = main([
-        "create-table",
-        "--db", str(tmp_path),
-        "--name", "Students",
-        "--schema", "id:INT,name:VARCHAR(50),age:INT",
-    ])
+    result = main(
+        [
+            "create-table",
+            "--db",
+            str(tmp_path),
+            "--name",
+            "Students",
+            "--schema",
+            "id:INT,name:VARCHAR(50),age:INT",
+        ]
+    )
 
     assert result == 0
     assert (tmp_path / "catalog.db").exists()
@@ -39,9 +43,12 @@ def test_create_table_command(tmp_path, capsys):
 def test_create_table_rejects_duplicate(tmp_path):
     arguments = [
         "create-table",
-        "--db", str(tmp_path),
-        "--name", "Students",
-        "--schema", "id:INT",
+        "--db",
+        str(tmp_path),
+        "--name",
+        "Students",
+        "--schema",
+        "id:INT",
     ]
 
     assert main(arguments) == 0
@@ -52,33 +59,46 @@ def test_create_table_rejects_duplicate(tmp_path):
 
 def test_create_table_rejects_invalid_schema(tmp_path):
     with pytest.raises(ValueError):
-        main([
-            "create-table",
-            "--db", str(tmp_path),
-            "--name", "Students",
-            "--schema", "id:FLOAT",
-        ])
+        main(
+            [
+                "create-table",
+                "--db",
+                str(tmp_path),
+                "--name",
+                "Students",
+                "--schema",
+                "id:FLOAT",
+            ]
+        )
 
     assert not (tmp_path / "Students.db").exists()
 
 
 def test_create_table_requires_arguments():
     with pytest.raises(SystemExit) as exc:
-        main([
-            "create-table",
-            "--db", "my_database",
-        ])
+        main(
+            [
+                "create-table",
+                "--db",
+                "my_database",
+            ]
+        )
 
     assert exc.value.code == 2
 
 
 def test_load_command(tmp_path, capsys):
-    main([
-        "create-table",
-        "--db", str(tmp_path),
-        "--name", "Students",
-        "--schema", "id:INT,name:VARCHAR(50),age:INT",
-    ])
+    main(
+        [
+            "create-table",
+            "--db",
+            str(tmp_path),
+            "--name",
+            "Students",
+            "--schema",
+            "id:INT,name:VARCHAR(50),age:INT",
+        ]
+    )
 
     csv_path = tmp_path / "students.csv"
     csv_path.write_text(
@@ -86,12 +106,17 @@ def test_load_command(tmp_path, capsys):
         encoding="utf-8",
     )
 
-    result = main([
-        "load",
-        "--db", str(tmp_path),
-        "--table", "Students",
-        "--file", str(csv_path),
-    ])
+    result = main(
+        [
+            "load",
+            "--db",
+            str(tmp_path),
+            "--table",
+            "Students",
+            "--file",
+            str(csv_path),
+        ]
+    )
 
     assert result == 0
 
@@ -99,10 +124,7 @@ def test_load_command(tmp_path, capsys):
     assert metadata.tuple_count == 2
 
     heap = HeapFile(tmp_path / metadata.filename)
-    records = [
-        decode_record(data, metadata.schema)
-        for _, data in heap.scan()
-    ]
+    records = [decode_record(data, metadata.schema) for _, data in heap.scan()]
 
     assert records == [
         (1, "Alice", 20),
@@ -114,12 +136,17 @@ def test_load_command(tmp_path, capsys):
 
 
 def test_load_command_with_quoted_csv(tmp_path):
-    main([
-        "create-table",
-        "--db", str(tmp_path),
-        "--name", "People",
-        "--schema", "id:INT,name:VARCHAR(50)",
-    ])
+    main(
+        [
+            "create-table",
+            "--db",
+            str(tmp_path),
+            "--name",
+            "People",
+            "--schema",
+            "id:INT,name:VARCHAR(50)",
+        ]
+    )
 
     csv_path = tmp_path / "people.csv"
     csv_path.write_text(
@@ -127,20 +154,25 @@ def test_load_command_with_quoted_csv(tmp_path):
         encoding="utf-8",
     )
 
-    assert main([
-        "load",
-        "--db", str(tmp_path),
-        "--table", "People",
-        "--file", str(csv_path),
-    ]) == 0
+    assert (
+        main(
+            [
+                "load",
+                "--db",
+                str(tmp_path),
+                "--table",
+                "People",
+                "--file",
+                str(csv_path),
+            ]
+        )
+        == 0
+    )
 
     metadata = Catalog(tmp_path).get_table("People")
     heap = HeapFile(tmp_path / metadata.filename)
 
-    records = [
-        decode_record(data, metadata.schema)
-        for _, data in heap.scan()
-    ]
+    records = [decode_record(data, metadata.schema) for _, data in heap.scan()]
 
     assert records == [
         (1, "Smith, John"),
@@ -153,31 +185,44 @@ def test_load_command_rejects_missing_table(tmp_path):
     csv_path.write_text("1\n", encoding="utf-8")
 
     with pytest.raises(ValueError, match="Table does not exist"):
-        main([
-            "load",
-            "--db", str(tmp_path),
-            "--table", "Missing",
-            "--file", str(csv_path),
-        ])
+        main(
+            [
+                "load",
+                "--db",
+                str(tmp_path),
+                "--table",
+                "Missing",
+                "--file",
+                str(csv_path),
+            ]
+        )
 
 
 def test_load_command_requires_arguments():
     with pytest.raises(SystemExit) as exc:
-        main([
-            "load",
-            "--db", "my_database",
-        ])
+        main(
+            [
+                "load",
+                "--db",
+                "my_database",
+            ]
+        )
 
     assert exc.value.code == 2
 
 
 def test_scan_command_json(tmp_path, capsys):
-    main([
-        "create-table",
-        "--db", str(tmp_path),
-        "--name", "Students",
-        "--schema", "id:INT,name:VARCHAR(50)",
-    ])
+    main(
+        [
+            "create-table",
+            "--db",
+            str(tmp_path),
+            "--name",
+            "Students",
+            "--schema",
+            "id:INT,name:VARCHAR(50)",
+        ]
+    )
 
     csv_path = tmp_path / "students.csv"
     csv_path.write_text(
@@ -185,22 +230,32 @@ def test_scan_command_json(tmp_path, capsys):
         encoding="utf-8",
     )
 
-    main([
-        "load",
-        "--db", str(tmp_path),
-        "--table", "Students",
-        "--file", str(csv_path),
-    ])
+    main(
+        [
+            "load",
+            "--db",
+            str(tmp_path),
+            "--table",
+            "Students",
+            "--file",
+            str(csv_path),
+        ]
+    )
 
     capsys.readouterr()
 
-    result = main([
-        "scan",
-        "--db", str(tmp_path),
-        "--table", "Students",
-        "--frames", "2",
-        "--json",
-    ])
+    result = main(
+        [
+            "scan",
+            "--db",
+            str(tmp_path),
+            "--table",
+            "Students",
+            "--frames",
+            "2",
+            "--json",
+        ]
+    )
 
     assert result == 0
 
@@ -214,12 +269,17 @@ def test_scan_command_json(tmp_path, capsys):
 
 
 def test_scan_command_limit(tmp_path, capsys):
-    main([
-        "create-table",
-        "--db", str(tmp_path),
-        "--name", "Numbers",
-        "--schema", "value:INT",
-    ])
+    main(
+        [
+            "create-table",
+            "--db",
+            str(tmp_path),
+            "--name",
+            "Numbers",
+            "--schema",
+            "value:INT",
+        ]
+    )
 
     csv_path = tmp_path / "numbers.csv"
     csv_path.write_text(
@@ -227,22 +287,32 @@ def test_scan_command_limit(tmp_path, capsys):
         encoding="utf-8",
     )
 
-    main([
-        "load",
-        "--db", str(tmp_path),
-        "--table", "Numbers",
-        "--file", str(csv_path),
-    ])
+    main(
+        [
+            "load",
+            "--db",
+            str(tmp_path),
+            "--table",
+            "Numbers",
+            "--file",
+            str(csv_path),
+        ]
+    )
 
     capsys.readouterr()
 
-    main([
-        "scan",
-        "--db", str(tmp_path),
-        "--table", "Numbers",
-        "--limit", "2",
-        "--json",
-    ])
+    main(
+        [
+            "scan",
+            "--db",
+            str(tmp_path),
+            "--table",
+            "Numbers",
+            "--limit",
+            "2",
+            "--json",
+        ]
+    )
 
     assert json.loads(capsys.readouterr().out) == [
         {"value": 10},
@@ -251,76 +321,111 @@ def test_scan_command_limit(tmp_path, capsys):
 
 
 def test_scan_command_zero_limit(tmp_path, capsys):
-    main([
-        "create-table",
-        "--db", str(tmp_path),
-        "--name", "Numbers",
-        "--schema", "value:INT",
-    ])
+    main(
+        [
+            "create-table",
+            "--db",
+            str(tmp_path),
+            "--name",
+            "Numbers",
+            "--schema",
+            "value:INT",
+        ]
+    )
 
     capsys.readouterr()
 
-    main([
-        "scan",
-        "--db", str(tmp_path),
-        "--table", "Numbers",
-        "--limit", "0",
-        "--json",
-    ])
+    main(
+        [
+            "scan",
+            "--db",
+            str(tmp_path),
+            "--table",
+            "Numbers",
+            "--limit",
+            "0",
+            "--json",
+        ]
+    )
 
     assert json.loads(capsys.readouterr().out) == []
 
 
 def test_scan_command_rejects_invalid_frames(tmp_path):
     with pytest.raises(SystemExit) as exc:
-        main([
-            "scan",
-            "--db", str(tmp_path),
-            "--table", "Numbers",
-            "--frames", "0",
-        ])
+        main(
+            [
+                "scan",
+                "--db",
+                str(tmp_path),
+                "--table",
+                "Numbers",
+                "--frames",
+                "0",
+            ]
+        )
 
     assert exc.value.code == 2
 
 
 def test_scan_command_rejects_negative_limit(tmp_path):
     with pytest.raises(SystemExit) as exc:
-        main([
-            "scan",
-            "--db", str(tmp_path),
-            "--table", "Numbers",
-            "--limit", "-1",
-        ])
+        main(
+            [
+                "scan",
+                "--db",
+                str(tmp_path),
+                "--table",
+                "Numbers",
+                "--limit",
+                "-1",
+            ]
+        )
 
     assert exc.value.code == 2
 
 
 def test_layout_command(tmp_path, capsys):
-    main([
-        "create-table",
-        "--db", str(tmp_path),
-        "--name", "Numbers",
-        "--schema", "value:INT",
-    ])
+    main(
+        [
+            "create-table",
+            "--db",
+            str(tmp_path),
+            "--name",
+            "Numbers",
+            "--schema",
+            "value:INT",
+        ]
+    )
 
     csv_path = tmp_path / "numbers.csv"
     csv_path.write_text("10\n20\n", encoding="utf-8")
 
-    main([
-        "load",
-        "--db", str(tmp_path),
-        "--table", "Numbers",
-        "--file", str(csv_path),
-    ])
+    main(
+        [
+            "load",
+            "--db",
+            str(tmp_path),
+            "--table",
+            "Numbers",
+            "--file",
+            str(csv_path),
+        ]
+    )
 
     capsys.readouterr()
 
-    result = main([
-        "layout",
-        "--db", str(tmp_path),
-        "--table", "Numbers",
-        "--page", "1",
-    ])
+    result = main(
+        [
+            "layout",
+            "--db",
+            str(tmp_path),
+            "--table",
+            "Numbers",
+            "--page",
+            "1",
+        ]
+    )
 
     assert result == 0
 
@@ -336,39 +441,59 @@ def test_layout_command(tmp_path, capsys):
 
 
 def test_layout_command_rejects_directory_page(tmp_path):
-    main([
-        "create-table",
-        "--db", str(tmp_path),
-        "--name", "Numbers",
-        "--schema", "value:INT",
-    ])
+    main(
+        [
+            "create-table",
+            "--db",
+            str(tmp_path),
+            "--name",
+            "Numbers",
+            "--schema",
+            "value:INT",
+        ]
+    )
 
     with pytest.raises(SystemExit) as exc:
-        main([
-            "layout",
-            "--db", str(tmp_path),
-            "--table", "Numbers",
-            "--page", "0",
-        ])
+        main(
+            [
+                "layout",
+                "--db",
+                str(tmp_path),
+                "--table",
+                "Numbers",
+                "--page",
+                "0",
+            ]
+        )
 
     assert exc.value.code == 2
 
 
 def test_layout_command_rejects_nonexistent_page(tmp_path):
-    main([
-        "create-table",
-        "--db", str(tmp_path),
-        "--name", "Numbers",
-        "--schema", "value:INT",
-    ])
+    main(
+        [
+            "create-table",
+            "--db",
+            str(tmp_path),
+            "--name",
+            "Numbers",
+            "--schema",
+            "value:INT",
+        ]
+    )
 
     with pytest.raises(SystemExit) as exc:
-        main([
-            "layout",
-            "--db", str(tmp_path),
-            "--table", "Numbers",
-            "--page", "99",
-        ])
+        main(
+            [
+                "layout",
+                "--db",
+                str(tmp_path),
+                "--table",
+                "Numbers",
+                "--page",
+                "99",
+            ]
+        )
 
     assert exc.value.code == 2
 
@@ -380,14 +505,20 @@ def test_trace_command_lru_json(tmp_path, capsys):
         encoding="utf-8",
     )
 
-    result = main([
-        "trace",
-        "--db", str(tmp_path),
-        "--file", str(trace_path),
-        "--frames", "3",
-        "--policy", "lru",
-        "--json",
-    ])
+    result = main(
+        [
+            "trace",
+            "--db",
+            str(tmp_path),
+            "--file",
+            str(trace_path),
+            "--frames",
+            "3",
+            "--policy",
+            "lru",
+            "--json",
+        ]
+    )
 
     assert result == 0
 
@@ -409,14 +540,20 @@ def test_trace_command_clock_json(tmp_path, capsys):
         encoding="utf-8",
     )
 
-    result = main([
-        "trace",
-        "--db", str(tmp_path),
-        "--file", str(trace_path),
-        "--frames", "3",
-        "--policy", "clock",
-        "--json",
-    ])
+    result = main(
+        [
+            "trace",
+            "--db",
+            str(tmp_path),
+            "--file",
+            str(trace_path),
+            "--frames",
+            "3",
+            "--policy",
+            "clock",
+            "--json",
+        ]
+    )
 
     assert result == 0
 
@@ -435,13 +572,19 @@ def test_trace_command_text_output(tmp_path, capsys):
     trace_path = tmp_path / "trace.txt"
     trace_path.write_text("1\n1\n2\n", encoding="utf-8")
 
-    result = main([
-        "trace",
-        "--db", str(tmp_path),
-        "--file", str(trace_path),
-        "--frames", "2",
-        "--policy", "lru",
-    ])
+    result = main(
+        [
+            "trace",
+            "--db",
+            str(tmp_path),
+            "--file",
+            str(trace_path),
+            "--frames",
+            "2",
+            "--policy",
+            "lru",
+        ]
+    )
 
     assert result == 0
 
@@ -461,12 +604,17 @@ def test_trace_command_rejects_zero_frames(tmp_path):
     trace_path.write_text("1\n", encoding="utf-8")
 
     with pytest.raises(SystemExit) as exc:
-        main([
-            "trace",
-            "--db", str(tmp_path),
-            "--file", str(trace_path),
-            "--frames", "0",
-        ])
+        main(
+            [
+                "trace",
+                "--db",
+                str(tmp_path),
+                "--file",
+                str(trace_path),
+                "--frames",
+                "0",
+            ]
+        )
 
     assert exc.value.code == 2
 
@@ -486,11 +634,16 @@ def test_layout_rejects_linked_directory_page(tmp_path):
     # The first directory holds 681 entries.
     # Page 682 is the second directory page.
     with pytest.raises(SystemExit) as exc:
-        main([
-            "layout",
-            "--db", str(tmp_path),
-            "--table", "Large",
-            "--page", "682",
-        ])
+        main(
+            [
+                "layout",
+                "--db",
+                str(tmp_path),
+                "--table",
+                "Large",
+                "--page",
+                "682",
+            ]
+        )
 
     assert exc.value.code == 2

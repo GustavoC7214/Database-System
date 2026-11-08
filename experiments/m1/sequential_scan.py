@@ -1,4 +1,3 @@
-
 """Benchmark sequential heap scans with different buffer sizes."""
 
 import csv
@@ -59,16 +58,11 @@ def main():
 
                 before = scan_heap.buffer.stats()
 
-                record_count = sum(
-                    1 for _ in scan_heap.scan()
-                )
+                record_count = sum(1 for _ in scan_heap.scan())
 
                 after = scan_heap.buffer.stats()
 
-                stats = {
-                    key: after[key] - before[key]
-                    for key in before
-                }
+                stats = {key: after[key] - before[key] for key in before}
 
                 assert record_count == DATA_PAGES
 

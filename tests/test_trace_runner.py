@@ -1,4 +1,3 @@
-
 import pytest
 
 from src.storage.trace_runner import read_trace, run_trace

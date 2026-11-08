@@ -16,15 +16,9 @@ class QueryProcessor:
         ast = Parser(tokens).parse()
 
         if isinstance(ast, RelationDefinition):
-            attributes = [
-                Attribute(ast.name, name)
-                for name in ast.attributes
-            ]
+            attributes = [Attribute(ast.name, name) for name in ast.attributes]
 
-            rows = [
-                Row(values)
-                for values in ast.rows
-            ]
+            rows = [Row(values) for values in ast.rows]
 
             relation = Relation(
                 ast.name,
@@ -38,6 +32,4 @@ class QueryProcessor:
         if isinstance(ast, Expression):
             return self.evaluator.evaluate(ast)
 
-        raise TypeError(
-            f"Unsupported AST node: {type(ast).__name__}"
-        )
+        raise TypeError(f"Unsupported AST node: {type(ast).__name__}")

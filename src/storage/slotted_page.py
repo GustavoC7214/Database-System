@@ -1,4 +1,3 @@
-
 import struct
 
 from src.storage.disk_manager import PAGE_SIZE
@@ -44,18 +43,13 @@ class SlottedPage:
         if slot_no < 0 or slot_no >= self.slot_count:
             raise ValueError(f"Invalid slot number: {slot_no}")
 
-        return struct.unpack_from(
-            "<HH", self.data, HEADER_SIZE + SLOT_SIZE * slot_no
-        )
+        return struct.unpack_from("<HH", self.data, HEADER_SIZE + SLOT_SIZE * slot_no)
 
     def insert(self, record: bytes) -> int | None:
         length = len(record)
 
         if length > PAGE_SIZE - HEADER_SIZE - SLOT_SIZE:
-            raise ValueError(
-                f"Record is too large for a slotted page: "
-                f"{length} bytes"
-            )
+            raise ValueError(f"Record is too large for a slotted page: {length} bytes")
 
         if self.free_space < length + SLOT_SIZE:
             return None
@@ -82,9 +76,7 @@ class SlottedPage:
         offset, length = self.get_slot(slot_no)
 
         if offset == 0:
-            raise ValueError(
-                f"Record ({self.page_id}, {slot_no}) has been deleted"
-            )
+            raise ValueError(f"Record ({self.page_id}, {slot_no}) has been deleted")
 
         return bytes(self.data[offset : offset + length])
 
@@ -92,9 +84,7 @@ class SlottedPage:
         offset, _ = self.get_slot(slot_no)
 
         if offset == 0:
-            raise ValueError(
-                f"Record ({self.page_id}, {slot_no}) is already deleted"
-            )
+            raise ValueError(f"Record ({self.page_id}, {slot_no}) is already deleted")
 
         struct.pack_into(
             "<HH",

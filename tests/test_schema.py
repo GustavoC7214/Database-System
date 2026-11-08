@@ -1,4 +1,3 @@
-
 import pytest
 
 from src.storage.schema import parse_schema
@@ -9,9 +8,7 @@ def test_parse_single_int_column():
 
 
 def test_parse_single_varchar_column():
-    assert parse_schema("name:VARCHAR(20)") == [
-        ("name", "VARCHAR(20)")
-    ]
+    assert parse_schema("name:VARCHAR(20)") == [("name", "VARCHAR(20)")]
 
 
 def test_parse_multiple_columns():

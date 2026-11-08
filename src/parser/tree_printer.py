@@ -67,7 +67,7 @@ def print_node(node: ASTNode, prefix: str, is_last: bool) -> list[str]:
         child_is_last = i == len(children) - 1
         child_lines = print_node(child, child_prefix, child_is_last)
         lines.extend(child_lines)
-    
+
     return lines
 
 
@@ -94,7 +94,7 @@ def format_inline(node: ASTNode) -> str:
     elif isinstance(node, Not):
         condition = format_inline(node.condition)
         return f"Not({condition})"
-    
+
     raise TypeError(f"Unsupported inline AST node: {type(node).__name__}")
 
 
@@ -120,7 +120,6 @@ def format_expression(node: ASTNode) -> str:
         return f"Join(cond={condition})"
     elif isinstance(node, Distinct):
         return "Distinct"
-
 
     raise TypeError(f"Unsupported inline AST node: {type(node).__name__}")
 

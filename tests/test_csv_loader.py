@@ -1,4 +1,3 @@
-
 import pytest
 
 from src.storage.catalog import Catalog
@@ -34,9 +33,7 @@ def test_convert_empty_varchar():
 def test_convert_varchar_with_comma():
     schema = [("name", "VARCHAR(20)")]
 
-    assert convert_csv_row(["Smith, John"], schema, 1) == (
-        "Smith, John",
-    )
+    assert convert_csv_row(["Smith, John"], schema, 1) == ("Smith, John",)
 
 
 def test_convert_csv_row_rejects_missing_columns():
@@ -106,10 +103,7 @@ def test_load_csv_basic(tmp_path):
     assert metadata.tuple_count == 2
 
     heap = HeapFile(tmp_path / metadata.filename)
-    rows = [
-        decode_record(data, metadata.schema)
-        for _, data in heap.scan()
-    ]
+    rows = [decode_record(data, metadata.schema) for _, data in heap.scan()]
 
     assert rows == [(1, "Alice", 20), (2, "Bob", 21)]
 
@@ -129,10 +123,7 @@ def test_load_csv_handles_quoted_commas_and_unicode(tmp_path):
     metadata = Catalog(tmp_path).get_table("People")
     heap = HeapFile(tmp_path / metadata.filename)
 
-    rows = [
-        decode_record(data, metadata.schema)
-        for _, data in heap.scan()
-    ]
+    rows = [decode_record(data, metadata.schema) for _, data in heap.scan()]
 
     assert rows == [(1, "Smith, John"), (2, "Café")]
 
@@ -186,10 +177,7 @@ def test_load_csv_partial_failure_preserves_inserted_rows(tmp_path):
     assert metadata.tuple_count == 2
 
     heap = HeapFile(tmp_path / metadata.filename)
-    rows = [
-        decode_record(data, metadata.schema)
-        for _, data in heap.scan()
-    ]
+    rows = [decode_record(data, metadata.schema) for _, data in heap.scan()]
 
     assert rows == [(1,), (2,)]
 
@@ -257,10 +245,7 @@ def test_load_csv_handles_multiline_quoted_fields(tmp_path):
     metadata = Catalog(tmp_path).get_table("Notes")
     heap = HeapFile(tmp_path / metadata.filename)
 
-    rows = [
-        decode_record(data, metadata.schema)
-        for _, data in heap.scan()
-    ]
+    rows = [decode_record(data, metadata.schema) for _, data in heap.scan()]
 
     assert rows == [
         (1, "First line\nSecond line"),

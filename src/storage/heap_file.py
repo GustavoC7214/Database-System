@@ -1,4 +1,3 @@
-
 from pathlib import Path
 
 from src.storage.buffer_pool import BufferPool
@@ -57,8 +56,7 @@ class HeapFile:
     def insert(self, record: bytes) -> tuple[int, int]:
         if len(record) + 4 > 4088:
             raise ValueError(
-                f"Record is too large for a 4096-byte page: "
-                f"{len(record)} bytes"
+                f"Record is too large for a 4096-byte page: {len(record)} bytes"
             )
 
         directory_id = 0
@@ -125,9 +123,7 @@ class HeapFile:
 
             # Allocate a new directory if the current one is full.
             if directory.entry_count >= MAX_ENTRIES:
-                new_directory_id, new_directory_data = (
-                    self.buffer.new_page()
-                )
+                new_directory_id, new_directory_data = self.buffer.new_page()
 
                 try:
                     new_directory = DirectoryPage(new_directory_id)
@@ -162,9 +158,7 @@ class HeapFile:
                 slot_no = page.insert(record)
 
                 if slot_no is None:
-                    raise RuntimeError(
-                        "Record could not fit in an empty page"
-                    )
+                    raise RuntimeError("Record could not fit in an empty page")
 
                 data[:] = page.to_bytes()
                 new_free_space = page.free_space

@@ -1,4 +1,3 @@
-
 from src.storage.catalog import Catalog
 from src.storage.heap_file import HeapFile
 from src.storage.record_codec import decode_record, encode_record
@@ -28,10 +27,7 @@ def test_catalog_codec_heap_integration(tmp_path):
         rid = heap.insert(encoded)
         rids.append(rid)
 
-    assert [
-        decode_record(heap.get(rid), metadata.schema)
-        for rid in rids
-    ] == records
+    assert [decode_record(heap.get(rid), metadata.schema) for rid in rids] == records
 
     metadata.page_count = heap.page_count
     metadata.tuple_count = len(records)

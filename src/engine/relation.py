@@ -8,9 +8,11 @@ class Attribute:
     relation: str
     name: str
 
+
 @dataclass
 class Row:
     values: list[Value]
+
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Row):
             return False
@@ -27,11 +29,13 @@ class Row:
 
         return True
 
+
 @dataclass
 class Relation:
     name: str
     attributes: list[Attribute]
     rows: list[Row]
+
     def __post_init__(self) -> None:
         for row in self.rows:
             if len(row.values) != len(self.attributes):

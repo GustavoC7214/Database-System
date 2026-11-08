@@ -32,12 +32,14 @@ def test_relation_reference():
 
     assert result == RelationReference(name="R")
 
+
 def test_parenthesized_relation_reference():
     tokens = Tokenizer("(R)").tokenize()
     parser = Parser(tokens)
     result = parser.parse()
 
     assert result == RelationReference(name="R")
+
 
 def test_union_expression():
     tokens = Tokenizer("R union S").tokenize()
@@ -47,8 +49,9 @@ def test_union_expression():
     assert result == BinaryExpression(
         left=RelationReference(name="R"),
         operator=BinaryOperator.UNION,
-        right=RelationReference(name="S")
+        right=RelationReference(name="S"),
     )
+
 
 def test_set_operators_are_left_associative():
     tokens = Tokenizer("R union S minus T").tokenize()
@@ -59,11 +62,12 @@ def test_set_operators_are_left_associative():
         left=BinaryExpression(
             left=RelationReference(name="R"),
             operator=BinaryOperator.UNION,
-            right=RelationReference(name="S")
+            right=RelationReference(name="S"),
         ),
         operator=BinaryOperator.MINUS,
-        right=RelationReference(name="T")
+        right=RelationReference(name="T"),
     )
+
 
 def test_times_has_higher_precedence_than_union():
     tokens = Tokenizer("R union S times T").tokenize()
@@ -76,9 +80,10 @@ def test_times_has_higher_precedence_than_union():
         right=BinaryExpression(
             left=RelationReference(name="S"),
             operator=BinaryOperator.TIMES,
-            right=RelationReference(name="T")
-        )
+            right=RelationReference(name="T"),
+        ),
     )
+
 
 def test_select_expression():
     tokens = Tokenizer("select[Age>=30](R)").tokenize()
@@ -89,15 +94,14 @@ def test_select_expression():
         condition=Comparison(
             left=AttributeReference(name="Age"),
             operator=ComparisonOperator.GREATER_THAN_OR_EQUAL,
-            right=NumberLiteral(value=30)
+            right=NumberLiteral(value=30),
         ),
-        expression=RelationReference(name="R")
+        expression=RelationReference(name="R"),
     )
 
+
 def test_boolean_operator_precedence():
-    tokens = Tokenizer(
-        "select[Age>=30 or Name='Bob' and Age<50](R)"
-    ).tokenize()
+    tokens = Tokenizer("select[Age>=30 or Name='Bob' and Age<50](R)").tokenize()
     parser = Parser(tokens)
     result = parser.parse()
 
@@ -106,25 +110,26 @@ def test_boolean_operator_precedence():
             left=Comparison(
                 left=AttributeReference(name="Age"),
                 operator=ComparisonOperator.GREATER_THAN_OR_EQUAL,
-                right=NumberLiteral(value=30)
+                right=NumberLiteral(value=30),
             ),
             operator=BooleanOperator.OR,
             right=BooleanBinaryCondition(
                 left=Comparison(
                     left=AttributeReference(name="Name"),
                     operator=ComparisonOperator.EQUAL,
-                    right=StringLiteral(value="Bob")
+                    right=StringLiteral(value="Bob"),
                 ),
                 operator=BooleanOperator.AND,
                 right=Comparison(
                     left=AttributeReference(name="Age"),
                     operator=ComparisonOperator.LESS_THAN,
-                    right=NumberLiteral(value=50)
-                )
-            )
+                    right=NumberLiteral(value=50),
+                ),
+            ),
         ),
-        expression=RelationReference(name="R")
+        expression=RelationReference(name="R"),
     )
+
 
 def test_not_condition():
     tokens = Tokenizer("select[not Age>=30](R)").tokenize()
@@ -136,11 +141,12 @@ def test_not_condition():
             condition=Comparison(
                 left=AttributeReference(name="Age"),
                 operator=ComparisonOperator.GREATER_THAN_OR_EQUAL,
-                right=NumberLiteral(value=30)
+                right=NumberLiteral(value=30),
             )
         ),
-        expression=RelationReference(name="R")
+        expression=RelationReference(name="R"),
     )
+
 
 def test_not_keyword_as_attribute():
     tokens = Tokenizer("select[not=30](R)").tokenize()
@@ -151,10 +157,11 @@ def test_not_keyword_as_attribute():
         condition=Comparison(
             left=AttributeReference(name="not"),
             operator=ComparisonOperator.EQUAL,
-            right=NumberLiteral(value=30)
+            right=NumberLiteral(value=30),
         ),
-        expression=RelationReference(name="R")
+        expression=RelationReference(name="R"),
     )
+
 
 def test_project_expression():
     tokens = Tokenizer("project[Name, Age](R)").tokenize()
@@ -162,37 +169,32 @@ def test_project_expression():
     result = parser.parse()
 
     assert result == Project(
-        attributes=[
-            AttributeReference(name="Name"),
-            AttributeReference(name="Age")
-        ],
-        expression=RelationReference(name="R")
+        attributes=[AttributeReference(name="Name"), AttributeReference(name="Age")],
+        expression=RelationReference(name="R"),
     )
 
+
 def test_project_with_qualified_attributes():
-    tokens = Tokenizer(
-        "project[Member.Name, Member.Age](Member)"
-    ).tokenize()
+    tokens = Tokenizer("project[Member.Name, Member.Age](Member)").tokenize()
     parser = Parser(tokens)
     result = parser.parse()
 
     assert result == Project(
         attributes=[
             AttributeReference(name="Name", relation="Member"),
-            AttributeReference(name="Age", relation="Member")
+            AttributeReference(name="Age", relation="Member"),
         ],
-        expression=RelationReference(name="Member")
+        expression=RelationReference(name="Member"),
     )
+
 
 def test_rename_expression():
     tokens = Tokenizer("rename[M](Member)").tokenize()
     parser = Parser(tokens)
     result = parser.parse()
 
-    assert result == Rename(
-        new_name="M",
-        expression=RelationReference(name="Member")
-    )
+    assert result == Rename(new_name="M", expression=RelationReference(name="Member"))
+
 
 def test_sort_ascending():
     tokens = Tokenizer("sort[Age asc](Member)").tokenize()
@@ -202,7 +204,7 @@ def test_sort_ascending():
     assert result == Sort(
         attribute=AttributeReference(name="Age"),
         direction=SortDictionary.ASC,
-        expression=RelationReference(name="Member")
+        expression=RelationReference(name="Member"),
     )
 
 
@@ -214,7 +216,7 @@ def test_sort_descending():
     assert result == Sort(
         attribute=AttributeReference(name="Age"),
         direction=SortDictionary.DESC,
-        expression=RelationReference(name="Member")
+        expression=RelationReference(name="Member"),
     )
 
 
@@ -224,19 +226,14 @@ def test_sort_with_qualified_attribute():
     result = parser.parse()
 
     assert result == Sort(
-        attribute=AttributeReference(
-            name="Age",
-            relation="Member"
-        ),
+        attribute=AttributeReference(name="Age", relation="Member"),
         direction=SortDictionary.DESC,
-        expression=RelationReference(name="Member")
+        expression=RelationReference(name="Member"),
     )
 
 
 def test_sort_nested_expression():
-    tokens = Tokenizer(
-        "sort[Age desc](select[Age>25](Member))"
-    ).tokenize()
+    tokens = Tokenizer("sort[Age desc](select[Age>25](Member))").tokenize()
     parser = Parser(tokens)
     result = parser.parse()
 
@@ -247,10 +244,10 @@ def test_sort_nested_expression():
             condition=Comparison(
                 left=AttributeReference(name="Age"),
                 operator=ComparisonOperator.GREATER_THAN,
-                right=NumberLiteral(value=25)
+                right=NumberLiteral(value=25),
             ),
-            expression=RelationReference(name="Member")
-        )
+            expression=RelationReference(name="Member"),
+        ),
     )
 
 
@@ -266,10 +263,9 @@ def test_sort_rejects_invalid_direction():
     assert "desc" in message
     assert "sideways" in message
 
+
 def test_join_expression():
-    tokens = Tokenizer(
-        "Member join[Member.Place=Chapter.Location] Chapter"
-    ).tokenize()
+    tokens = Tokenizer("Member join[Member.Place=Chapter.Location] Chapter").tokenize()
     parser = Parser(tokens)
     result = parser.parse()
 
@@ -278,15 +274,14 @@ def test_join_expression():
         condition=Comparison(
             left=AttributeReference(name="Place", relation="Member"),
             operator=ComparisonOperator.EQUAL,
-            right=AttributeReference(name="Location", relation="Chapter")
+            right=AttributeReference(name="Location", relation="Chapter"),
         ),
-        right=RelationReference(name="Chapter")
+        right=RelationReference(name="Chapter"),
     )
 
+
 def test_join_has_higher_precedence_than_union():
-    tokens = Tokenizer(
-        "R union S join[S.Id=T.Id] T"
-    ).tokenize()
+    tokens = Tokenizer("R union S join[S.Id=T.Id] T").tokenize()
     parser = Parser(tokens)
     result = parser.parse()
 
@@ -298,11 +293,12 @@ def test_join_has_higher_precedence_than_union():
             condition=Comparison(
                 left=AttributeReference(name="Id", relation="S"),
                 operator=ComparisonOperator.EQUAL,
-                right=AttributeReference(name="Id", relation="T")
+                right=AttributeReference(name="Id", relation="T"),
             ),
-            right=RelationReference(name="T")
-        )
+            right=RelationReference(name="T"),
+        ),
     )
+
 
 def test_multiple_not_conditions():
     tokens = Tokenizer("select[not not Age=30](R)").tokenize()
@@ -315,12 +311,13 @@ def test_multiple_not_conditions():
                 condition=Comparison(
                     left=AttributeReference(name="Age"),
                     operator=ComparisonOperator.EQUAL,
-                    right=NumberLiteral(value=30)
+                    right=NumberLiteral(value=30),
                 )
             )
         ),
-        expression=RelationReference(name="R")
+        expression=RelationReference(name="R"),
     )
+
 
 def test_union_keyword_as_attribute():
     tokens = Tokenizer("select[union=3](R)").tokenize()
@@ -331,10 +328,11 @@ def test_union_keyword_as_attribute():
         condition=Comparison(
             left=AttributeReference(name="union"),
             operator=ComparisonOperator.EQUAL,
-            right=NumberLiteral(value=3)
+            right=NumberLiteral(value=3),
         ),
-        expression=RelationReference(name="R")
+        expression=RelationReference(name="R"),
     )
+
 
 def test_relation_definition():
     source = """Member(Id, Name, Age) = {
@@ -348,10 +346,8 @@ def test_relation_definition():
     assert isinstance(result, RelationDefinition)
     assert result.name == "Member"
     assert result.attributes == ["Id", "Name", "Age"]
-    assert result.rows == [
-        [1, "Alice", 22],
-        [2, "Bob Smith", 25]
-    ]
+    assert result.rows == [[1, "Alice", 22], [2, "Bob Smith", 25]]
+
 
 def test_empty_relation_definition():
     source = """Empty(Id, Name) = {
@@ -365,6 +361,7 @@ def test_empty_relation_definition():
     assert result.attributes == ["Id", "Name"]
     assert result.rows == []
 
+
 def test_relation_definition_requires_equals():
     source = """Member(Id, Name) > {
 1, Alice
@@ -374,6 +371,7 @@ def test_relation_definition_requires_equals():
 
     with pytest.raises(ParseError):
         Parser(tokens).parse()
+
 
 def test_relation_definition_allows_arity_mismatch_during_parsing():
     source = """Member(Id, Name, Age) = {
@@ -387,6 +385,7 @@ def test_relation_definition_allows_arity_mismatch_during_parsing():
     assert result.attributes == ["Id", "Name", "Age"]
     assert result.rows == [[1, "Alice"]]
 
+
 def test_parser_rejects_trailing_tokens():
     source = "R S"
 
@@ -395,6 +394,7 @@ def test_parser_rejects_trailing_tokens():
     with pytest.raises(ParseError):
         Parser(tokens).parse()
 
+
 def test_comparison_operators_are_non_associative():
     source = "select[Age = 30 = 40](Member)"
 
@@ -402,6 +402,7 @@ def test_comparison_operators_are_non_associative():
 
     with pytest.raises(ParseError):
         Parser(tokens).parse()
+
 
 def test_parentheses_override_relational_precedence():
     source = "(R union S) times T"
@@ -415,6 +416,7 @@ def test_parentheses_override_relational_precedence():
     assert isinstance(result.left, BinaryExpression)
     assert result.left.operator == BinaryOperator.UNION
 
+
 def test_required_case_10_union_minus_grouping():
     source = "A union B minus C"
 
@@ -426,6 +428,7 @@ def test_required_case_10_union_minus_grouping():
 
     assert isinstance(result.left, BinaryExpression)
     assert result.left.operator == BinaryOperator.UNION
+
 
 def test_missing_closing_parenthesis():
     source = "select[Age>30](R"
@@ -441,6 +444,7 @@ def test_missing_closing_parenthesis():
     assert "line" in message
     assert "column" in message
 
+
 def test_empty_projection_attribute_list():
     source = "project[](R)"
 
@@ -448,6 +452,7 @@ def test_empty_projection_attribute_list():
 
     with pytest.raises(ParseError):
         Parser(tokens).parse()
+
 
 def test_required_case_12_not_and_or_precedence():
     source = "select[not (a=1 and b=2) or c>3](R)"
@@ -467,6 +472,7 @@ def test_required_case_12_not_and_or_precedence():
     assert isinstance(result.condition.right, Comparison)
     assert result.condition.right.operator == ComparisonOperator.GREATER_THAN
 
+
 def test_required_case_14_nested_operations():
     source = "project[Name](select[Age>30](select[DID='D1'](Employees)))"
 
@@ -479,11 +485,9 @@ def test_required_case_14_nested_operations():
 
     assert isinstance(result.expression.expression, Select)
 
-    assert isinstance(
-        result.expression.expression.expression,
-        RelationReference
-    )
+    assert isinstance(result.expression.expression.expression, RelationReference)
     assert result.expression.expression.expression.name == "Employees"
+
 
 def test_required_case_15_parentheses_override_precedence():
     source = "(A union B) minus (C intersect D)"
@@ -569,15 +573,11 @@ def test_parse_distinct_expression():
     tokens = Tokenizer("distinct(Employees)").tokenize()
     result = Parser(tokens).parse()
 
-    assert result == Distinct(
-        expression=RelationReference("Employees")
-    )
+    assert result == Distinct(expression=RelationReference("Employees"))
 
 
 def test_parse_distinct_with_projection():
-    tokens = Tokenizer(
-        "distinct(project[Name](Employees))"
-    ).tokenize()
+    tokens = Tokenizer("distinct(project[Name](Employees))").tokenize()
 
     result = Parser(tokens).parse()
 

@@ -1,4 +1,3 @@
-
 import pytest
 
 from src.storage.record_codec import (
@@ -75,9 +74,7 @@ def test_varchar_round_trip():
     values = ["", "Alice", "hello world", "café", "你好"]
 
     for value in values:
-        assert decode_varchar(
-            encode_varchar(value, 255), 255
-        ) == value
+        assert decode_varchar(encode_varchar(value, 255), 255) == value
 
 
 def test_varchar_length_counts_utf8_bytes():
@@ -142,11 +139,7 @@ def test_encode_complete_record():
 
     result = encode_record((42, "bob", 7), schema)
 
-    assert result == (
-        b"\x2a\x00\x00\x00"
-        b"\x03\x00bob"
-        b"\x07\x00\x00\x00"
-    )
+    assert result == (b"\x2a\x00\x00\x00\x03\x00bob\x07\x00\x00\x00")
     assert len(result) == 13
 
 
@@ -156,10 +149,7 @@ def test_encode_record_with_negative_integer():
         ("name", "VARCHAR(20)"),
     ]
 
-    assert encode_record((-1, "Alice"), schema) == (
-        b"\xff\xff\xff\xff"
-        b"\x05\x00Alice"
-    )
+    assert encode_record((-1, "Alice"), schema) == (b"\xff\xff\xff\xff\x05\x00Alice")
 
 
 def test_encode_record_with_empty_string():
@@ -208,11 +198,7 @@ def test_decode_complete_record():
         ("c", "INT"),
     ]
 
-    data = (
-        b"\x2a\x00\x00\x00"
-        b"\x03\x00bob"
-        b"\x07\x00\x00\x00"
-    )
+    data = b"\x2a\x00\x00\x00\x03\x00bob\x07\x00\x00\x00"
 
     assert decode_record(data, schema) == (42, "bob", 7)
 

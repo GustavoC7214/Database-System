@@ -1,4 +1,3 @@
-
 """Utilities for replaying buffer pool access traces."""
 
 from pathlib import Path
@@ -22,14 +21,12 @@ def read_trace(trace_path: str | Path) -> list[int]:
                 page_id = int(text)
             except ValueError as exc:
                 raise ValueError(
-                    f"Trace line {line_number}: "
-                    f"invalid page ID {text!r}"
+                    f"Trace line {line_number}: invalid page ID {text!r}"
                 ) from exc
 
             if page_id < 0:
                 raise ValueError(
-                    f"Trace line {line_number}: "
-                    "page ID cannot be negative"
+                    f"Trace line {line_number}: page ID cannot be negative"
                 )
 
             page_ids.append(page_id)
