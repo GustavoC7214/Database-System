@@ -198,3 +198,73 @@ def test_load_command(engine, tmp_path, capsys):
     run_command(engine, f'LOAD Numbers FROM "{csv_file}";')
 
     assert "Loaded 2 rows" in capsys.readouterr().out
+
+
+def test_shell_end_to_end(tmp_path):
+    """Execute SQL through the real shell process."""
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    repo_root = Path(__file__).resolve().parents[1]
+    shell = repo_root / "dbshell"
+    db_dir = tmp_path / "database"
+
+    commands = (
+        "CREATE TABLE Numbers (id INT);\n"
+        "INSERT INTO Numbers VALUES (10);\n"
+        "INSERT INTO Numbers VALUES (20);\n"
+        "SELECT * FROM Numbers;\n"
+        ".quit\n"
+    )
+
+    result = subprocess.run(
+        [sys.executable, str(shell), "--db", str(db_dir)],
+        input=commands,
+        text=True,
+        capture_output=True,
+        cwd=repo_root,
+        timeout=15,
+        check=False,
+    )
+
+    assert result.returncode == 0
+    assert result.stderr == ""
+    assert "Created table Numbers" in result.stdout
+    assert "Inserted 1 row" in result.stdout
+    assert "10" in result.stdout
+    assert "20" in result.stdout
+    assert "Returned 2 rows" in result.stdout
+
+
+def test_shell_recovers_after_error(tmp_path):
+    """A failed statement must not terminate the interactive session."""
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    repo_root = Path(__file__).resolve().parents[1]
+    shell = repo_root / "dbshell"
+
+    commands = (
+        "CREATE TABLE Numbers (id INT);\n"
+        "INSERT INTO Numbers VALUES ('invalid');\n"
+        "INSERT INTO Numbers VALUES (42);\n"
+        "SELECT * FROM Numbers;\n"
+        ".quit\n"
+    )
+
+    result = subprocess.run(
+        [sys.executable, str(shell), "--db", str(tmp_path / "db")],
+        input=commands,
+        text=True,
+        capture_output=True,
+        cwd=repo_root,
+        timeout=15,
+        check=False,
+    )
+
+    assert result.returncode == 0
+    assert "Error:" in result.stderr
+    assert "42" in result.stdout
+    assert "Returned 1 rows" in result.stdout
