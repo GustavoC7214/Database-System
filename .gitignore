@@ -26,3 +26,6 @@ trace_pages.db
 
 # Generated Module 4 experiment databases and optimizer statistics
 /experiments/m4/results/correlated_db/
+
+# Generated integration benchmark results
+experiments/integration/*_results.csv
