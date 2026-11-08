@@ -23,3 +23,6 @@ trace_pages.db
 
 # Local Pyright configuration
 /pyrightconfig.json
+
+# Generated Module 4 experiment databases and optimizer statistics
+/experiments/m4/results/correlated_db/
