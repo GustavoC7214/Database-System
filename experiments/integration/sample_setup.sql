@@ -1,0 +1,5 @@
+
+CREATE TABLE Numbers (id INT);
+INSERT INTO Numbers VALUES (1);
+INSERT INTO Numbers VALUES (2);
+INSERT INTO Numbers VALUES (3);
