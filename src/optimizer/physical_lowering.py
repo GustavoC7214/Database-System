@@ -342,6 +342,21 @@ def lower_physical_plan(
 
             return lower_filter(predicate, child_plan)
 
+        if operation in {"union", "union_all", "intersect", "except"}:
+            left = node.get("left")
+            right = node.get("right")
+
+            if not isinstance(left, dict) or not isinstance(right, dict):
+                raise UnsupportedPhysicalPlan(
+                    f"{operation.upper()} requires two input plans"
+                )
+
+            return {
+                "op": operation,
+                "left": lower(left),
+                "right": lower(right),
+            }
+
         if operation == "join":
             condition = node.get("condition")
 
