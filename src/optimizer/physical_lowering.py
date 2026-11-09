@@ -91,7 +91,7 @@ def lower_physical_plan(
         if operation == "join":
             return subtree_tables(node["left"]) | subtree_tables(node["right"])
 
-        if operation in {"select", "project", "limit"}:
+        if operation in {"select", "project", "limit", "sort", "distinct"}:
             return subtree_tables(node["child"])
 
         raise UnsupportedPhysicalPlan(
@@ -114,7 +114,7 @@ def lower_physical_plan(
 
             return statistics[table].n_pages
 
-        if operation in {"select", "project", "limit", "join"}:
+        if operation in {"select", "project", "limit", "join", "sort", "distinct"}:
             for table in subtree_tables(node):
                 if table not in statistics:
                     raise UnsupportedPhysicalPlan(f"Missing table statistics: {table}")
@@ -165,6 +165,34 @@ def lower_physical_plan(
                 "op": "project",
                 "columns": list(columns),
                 "child": lower(child),
+            }
+
+        if operation == "sort":
+            keys = node.get("keys")
+
+            if not isinstance(keys, list):
+                raise UnsupportedPhysicalPlan("SORT requires a list of keys")
+
+            for key in keys:
+                if not (
+                    isinstance(key, (list, tuple))
+                    and len(key) == 2
+                    and isinstance(key[0], str)
+                    and isinstance(key[1], str)
+                    and key[1].upper() in {"ASC", "DESC"}
+                ):
+                    raise UnsupportedPhysicalPlan(f"Invalid sort key: {key!r}")
+
+            return {
+                "op": "sort",
+                "keys": [[column, direction.upper()] for column, direction in keys],
+                "child": lower(node["child"]),
+            }
+
+        if operation == "distinct":
+            return {
+                "op": "distinct",
+                "child": lower(node["child"]),
             }
 
         if operation == "limit":
