@@ -4,10 +4,16 @@ from src.execution.operator import Operator
 class Project(Operator):
     """Select columns from the child operator without removing duplicates."""
 
-    def __init__(self, child: Operator, columns: list[str]) -> None:
+    def __init__(
+        self,
+        child: Operator,
+        columns: list[str],
+        outputs: list[str] | None = None,
+    ) -> None:
         super().__init__()
         self.child = child
         self.columns = columns
+        self.outputs = outputs
         self._indices: list[int] = []
         self._opened = False
 
@@ -30,6 +36,20 @@ class Project(Operator):
                 self._indices.append(matches[0])
 
             self.schema = [self.child.schema[index] for index in self._indices]
+
+            if self.outputs is not None:
+                if len(self.outputs) != len(self.schema):
+                    raise ValueError("Projection outputs must match columns")
+
+                if not all(isinstance(name, str) and name for name in self.outputs):
+                    raise ValueError("Projection output names must be nonempty strings")
+
+                self.schema = [
+                    (output_name, column_type)
+                    for output_name, (_, column_type) in zip(
+                        self.outputs, self.schema, strict=True
+                    )
+                ]
 
             names = [name for name, _ in self.schema]
 

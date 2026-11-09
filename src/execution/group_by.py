@@ -15,7 +15,7 @@ class GroupBy(Operator):
         self,
         child: Operator,
         keys: list[str],
-        aggregates: list[tuple[str, str]],
+        aggregates: list[tuple[str, str] | tuple[str, str, str]],
         pages: SharedPageManager,
         mode: str = "sort",
     ) -> None:
@@ -54,7 +54,17 @@ class GroupBy(Operator):
 
         result = [columns[i] for i in self._key_indices]
 
-        for function, column in self.aggregates:
+        for aggregate in self.aggregates:
+            if len(aggregate) == 2:
+                function, column = aggregate
+                explicit_name = None
+            elif len(aggregate) == 3:
+                function, column, explicit_name = aggregate
+                if not isinstance(explicit_name, str) or not explicit_name:
+                    raise ValueError("Aggregate output name must be a nonempty string")
+            else:
+                raise ValueError("Aggregate must contain 2 or 3 fields")
+
             function = function.lower()
 
             if function not in {"count", "sum", "avg", "min", "max"}:
@@ -85,6 +95,9 @@ class GroupBy(Operator):
                     else source_type
                 )
                 output_name = f"{function}_{column.replace('.', '_')}"
+
+            if explicit_name is not None:
+                output_name = explicit_name
 
             self._aggregate_specs.append((function, index))
             result.append((output_name, column_type))

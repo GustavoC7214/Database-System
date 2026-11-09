@@ -14,7 +14,7 @@ class Filter(Operator):
         child: Operator,
         column: str,
         comparison: str,
-        value: int | str,
+        value: float | str,
     ) -> None:
         super().__init__()
         self.child = child
@@ -39,7 +39,9 @@ class Filter(Operator):
 
             if column_type == "INT":
                 valid_type = type(self.value) is int
-            elif column_type.startswith("VARCHAR("):
+            elif column_type == "REAL":
+                valid_type = type(self.value) in {int, float}
+            elif column_type.startswith("VARCHAR(") or column_type == "VARCHAR":
                 valid_type = isinstance(self.value, str)
             else:
                 raise ValueError(f"Unsupported column type: {column_type}")
@@ -64,10 +66,7 @@ class Filter(Operator):
                 expected.encode("utf-8"),
             )
 
-        if type(actual) is int and type(expected) is int:
-            return self._compare(actual, expected)
-
-        if type(actual) is float and type(expected) is float:
+        if type(actual) in {int, float} and type(expected) in {int, float}:
             return self._compare(actual, expected)
 
         raise TypeError("Cannot compare values of different types")

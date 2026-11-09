@@ -168,7 +168,7 @@ def test_unsupported_query_fails_cleanly(engine):
     engine.execute_sql("CREATE TABLE Numbers (id INT);")
 
     with pytest.raises(UnsupportedPhysicalPlan):
-        engine.execute_sql("SELECT id, COUNT(*) FROM Numbers GROUP BY id;")
+        engine.execute_sql("SELECT id FROM Numbers WHERE id = 1 OR id = 2;")
 
 
 def test_invalid_load_command(engine):

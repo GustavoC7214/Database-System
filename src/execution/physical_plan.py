@@ -112,6 +112,7 @@ class PhysicalPlanBuilder:
             return Project(
                 self._child(node),
                 self._field(node, "columns"),
+                outputs=node.get("outputs"),
             )
 
         if operation == "Limit":

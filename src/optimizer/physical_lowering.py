@@ -91,7 +91,7 @@ def lower_physical_plan(
         if operation == "join":
             return subtree_tables(node["left"]) | subtree_tables(node["right"])
 
-        if operation in {"select", "project", "limit", "sort", "distinct"}:
+        if operation in {"select", "project", "limit", "sort", "distinct", "group_by"}:
             return subtree_tables(node["child"])
 
         raise UnsupportedPhysicalPlan(
@@ -114,7 +114,15 @@ def lower_physical_plan(
 
             return statistics[table].n_pages
 
-        if operation in {"select", "project", "limit", "join", "sort", "distinct"}:
+        if operation in {
+            "select",
+            "project",
+            "limit",
+            "join",
+            "sort",
+            "distinct",
+            "group_by",
+        }:
             for table in subtree_tables(node):
                 if table not in statistics:
                     raise UnsupportedPhysicalPlan(f"Missing table statistics: {table}")
@@ -155,15 +163,83 @@ def lower_physical_plan(
                     "Projection requires a list of column names"
                 )
 
-            if "aliases" in node or "outputs" in node:
-                raise UnsupportedPhysicalPlan("Projection aliases are not supported")
+            outputs = node.get("outputs")
 
-            for column in columns:
-                validate_column(column, tables)
+            if outputs is not None and (
+                not isinstance(outputs, list)
+                or len(outputs) != len(columns)
+                or not all(isinstance(name, str) and name for name in outputs)
+            ):
+                raise UnsupportedPhysicalPlan("Invalid projection output names")
+
+            if child.get("op") == "group_by":
+                grouping = child
+            elif (
+                child.get("op") == "select"
+                and child.get("child", {}).get("op") == "group_by"
+            ):
+                grouping = child["child"]
+            else:
+                grouping = None
+
+            if grouping is not None:
+                available_columns = set(grouping.get("keys", []))
+                available_columns.update(
+                    aggregate[2] for aggregate in grouping.get("aggregates", [])
+                )
+
+                for column in columns:
+                    if column not in available_columns:
+                        raise UnsupportedPhysicalPlan(
+                            f"Column is unavailable after GROUP BY: {column}"
+                        )
+            else:
+                for column in columns:
+                    validate_column(column, tables)
 
             return {
                 "op": "project",
                 "columns": list(columns),
+                "outputs": outputs,
+                "child": lower(child),
+            }
+
+        if operation == "group_by":
+            child = node["child"]
+            tables = subtree_tables(child)
+            keys = node.get("keys", [])
+            aggregates = node.get("aggregates", [])
+
+            if not isinstance(keys, list) or not isinstance(aggregates, list):
+                raise UnsupportedPhysicalPlan("Invalid grouping specification")
+
+            for key in keys:
+                validate_column(key, tables)
+
+            for aggregate in aggregates:
+                if not (
+                    isinstance(aggregate, (list, tuple))
+                    and len(aggregate) == 3
+                    and all(isinstance(item, str) for item in aggregate)
+                ):
+                    raise UnsupportedPhysicalPlan(
+                        f"Invalid aggregate specification: {aggregate!r}"
+                    )
+
+                function, argument, _ = aggregate
+
+                if function.lower() not in {"count", "sum", "avg", "min", "max"}:
+                    raise UnsupportedPhysicalPlan(
+                        f"Unsupported aggregate function: {function}"
+                    )
+
+                if argument != "*":
+                    validate_column(argument, tables)
+
+            return {
+                "op": "group_by",
+                "keys": list(keys),
+                "aggregates": [list(item) for item in aggregates],
                 "child": lower(child),
             }
 
@@ -240,7 +316,21 @@ def lower_physical_plan(
                         "Physical filters require column-to-literal comparisons"
                     )
 
-                validate_column(predicate.left.name, available_tables)
+                column_name = predicate.left.name
+
+                if node["child"].get("op") == "group_by":
+                    grouping = node["child"]
+                    output_names = set(grouping.get("keys", []))
+                    output_names.update(
+                        aggregate[2] for aggregate in grouping.get("aggregates", [])
+                    )
+
+                    if column_name not in output_names:
+                        raise UnsupportedPhysicalPlan(
+                            f"Unknown HAVING output column: {column_name}"
+                        )
+                else:
+                    validate_column(column_name, available_tables)
 
                 return {
                     "op": "filter",
