@@ -96,6 +96,7 @@ def test_union_all_preserves_left_schema(engine):
         (3,),
         (4,),
     ]
+    assert result.columns == ["first_id"]
 
 
 def test_union_with_filtered_inputs(engine):

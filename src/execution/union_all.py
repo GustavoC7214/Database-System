@@ -17,11 +17,14 @@ class UnionAll(Operator):
         try:
             self.right.open()
 
+            if len(self.left.schema) != len(self.right.schema):
+                raise ValueError("Set operations require the same number of columns")
+
             left_types = [column_type for _, column_type in self.left.schema]
             right_types = [column_type for _, column_type in self.right.schema]
 
             if left_types != right_types:
-                raise ValueError("UnionAll requires matching column types")
+                raise ValueError("Set operations require matching column types")
 
             self.schema = list(self.left.schema)
 
