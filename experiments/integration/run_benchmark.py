@@ -2,6 +2,7 @@
 
 import argparse
 import csv
+import re
 import sys
 from pathlib import Path
 from time import perf_counter
@@ -214,8 +215,20 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.setup is not None:
             setup_sql = args.setup.read_text(encoding="utf-8")
+
             for statement in split_statements(setup_sql):
-                engine.execute_sql(statement)
+                command = statement.strip().rstrip(";").strip()
+
+                analyze_match = re.fullmatch(
+                    r"ANALYZE\s+([A-Za-z_][A-Za-z_0-9]*)",
+                    command,
+                    re.IGNORECASE,
+                )
+
+                if analyze_match:
+                    engine.analyze(analyze_match.group(1))
+                else:
+                    engine.execute_sql(statement)
 
         workload_sql = args.workload.read_text(encoding="utf-8")
         statements = split_statements(workload_sql)

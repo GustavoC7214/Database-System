@@ -192,3 +192,50 @@ def test_benchmark_cli_reports_failures(tmp_path):
 
     assert exit_code == 1
     assert output.exists()
+
+
+def test_benchmark_cli_supports_analyze_setup(tmp_path):
+    setup = tmp_path / "setup.sql"
+    workload = tmp_path / "workload.sql"
+    output = tmp_path / "results.csv"
+    database = tmp_path / "database"
+
+    setup.write_text(
+        """
+        CREATE TABLE Numbers (id INT);
+        INSERT INTO Numbers VALUES (1);
+        INSERT INTO Numbers VALUES (2);
+        ANALYZE Numbers;
+        """,
+        encoding="utf-8",
+    )
+
+    workload.write_text(
+        "SELECT * FROM Numbers;",
+        encoding="utf-8",
+    )
+
+    exit_code = main(
+        [
+            "--db",
+            str(database),
+            "--setup",
+            str(setup),
+            "--workload",
+            str(workload),
+            "--output",
+            str(output),
+            "--frames",
+            "16",
+        ]
+    )
+
+    assert exit_code == 0
+    assert output.exists()
+
+    with output.open(newline="", encoding="utf-8") as file:
+        rows = list(csv.DictReader(file))
+
+    assert len(rows) == 1
+    assert rows[0]["status"] == "ok"
+    assert rows[0]["result_rows"] == "2"

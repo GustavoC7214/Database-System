@@ -43,3 +43,7 @@ INSERT INTO Projects VALUES (5, 4, 45000);
 INSERT INTO Projects VALUES (6, 5, 90000);
 INSERT INTO Projects VALUES (7, 5, 40000);
 INSERT INTO Projects VALUES (8, 2, 25000);
+
+ANALYZE Departments;
+ANALYZE Employees;
+ANALYZE Projects;
