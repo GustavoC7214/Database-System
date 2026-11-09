@@ -424,10 +424,18 @@ The integration tests cover:
 
 On November 8, 2026:
 
-- 1,490 tests passed
-- 20 integration tests passed
-- Ruff linting passed
-- Ruff formatting passed
+- 1,532 automated tests passed.
+- All 25 queries in the deterministic integration workload executed successfully.
+- Table statistics were collected using ANALYZE before benchmarking.
+- Ruff linting passed.
+- Ruff formatting passed.
+
+The benchmark records result counts, measured page I/O, estimated page I/O,
+execution time, estimated root cardinality, actual root cardinality,
+and cardinality q-error.
+
+These measurements apply to the supported integration workload.
+They do not establish correctness for all unpublished SQL queries.
 
 ## 12. Known Limitations
 

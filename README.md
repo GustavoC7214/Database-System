@@ -240,12 +240,14 @@ python3 -m ruff format --check .
 
 As of November 8, 2026:
 
-- **1,490 automated tests passed**
-- **20 integration tests passed**
-- Ruff linting passed
-- Ruff formatting passed
+- **1,532 automated tests passed** in 23.87 seconds.
+- **27 workload regression tests passed**.
+- **25 of 25 integration benchmark queries completed successfully** with table statistics collected.
+- Ruff linting passed.
+- Ruff formatting passed.
 
-These results cover the implemented and tested functionality; they do not guarantee correctness for every possible SQL query or the assignment's unpublished workload.
+These results validate the tested functionality, but do not guarantee
+correctness for every SQL query or the assignment's unpublished workload.
 
 ## Experiments
 
@@ -260,6 +262,46 @@ Results and analysis are documented in:
 - [Module 1 Report](docs/REPORT_M1.md)
 - [Module 2 Report](docs/REPORT_M2.md)
 - [Module 4 Report](docs/REPORT_M4.md)
+
+### Final Integration Benchmark
+
+The project includes a reproducible 25-query integration workload
+that exercises the unified SQL execution pipeline.
+
+The benchmark creates three tables (Departments, Employees, and
+Projects), populates them with test records, and collects table
+statistics using ANALYZE before executing the workload.
+
+Run the benchmark from the project root:
+
+```bash
+python3 -m experiments.integration.run_benchmark \
+  --db /tmp/comp3005-final-benchmark \
+  --setup experiments/integration/workload25_setup.sql \
+  --workload experiments/integration/workload25.sql \
+  --output experiments/integration/workload25_results.csv \
+  --frames 16
+```
+Use a fresh database directory for each run because the setup script
+creates tables.
+
+The benchmark records query success, result row counts, measured and
+estimated page I/O, physical and end-to-end execution time, estimated
+and actual root cardinality, and root cardinality q-error.
+
+### Verified Benchmark Results
+
+On November 8, 2026:
+
+- Queries executed: 25
+- Successful queries: 25
+- Failed queries: 0
+- Buffer frames: 16
+
+All 25 queries returned the expected number of rows.
+
+This workload is a local regression benchmark, not the instructor's
+unpublished final workload.
 
 ## Documentation
 
