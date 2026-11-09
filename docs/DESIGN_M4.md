@@ -428,7 +428,14 @@ Supported transformations include:
 | `scan` | `seqscan` |
 | `select` | `filter` |
 | `project` | `project` |
+| `sort` | `sort` |
+| `distinct` | `distinct` |
 | `limit` | `limit` |
+| `group_by` | `group_by` |
+| `union` | `union` |
+| `union_all` | `union_all` |
+| `intersect` | `intersect` |
+| `except` | `except` |
 | `join` | Selected physical join algorithm |
 
 Supported selection conditions include conjunctions of column-to-literal comparisons.
@@ -503,9 +510,16 @@ It retains one best candidate per subset and does not maintain multiple interest
 
 ### 11.3 Limited SQL lowering
 
-Physical lowering supports a restricted subset of logical operators and predicates.
+Physical lowering supports scans, filters, projections, sorting,
+duplicate elimination, limiting, grouping, aggregation, supported
+joins, and SQL set operations.
 
-Aliases, cross joins, grouping, and more complex physical join conditions are outside its supported lowering scope.
+The integrated executor supports COUNT, SUM, AVG, MIN, and MAX,
+as well as supported HAVING predicates.
+
+Remaining restrictions include complex expressions, certain
+Boolean predicates, unsupported join conditions, and some
+alias or derived-table scenarios.
 
 ### 11.4 Analytical cost approximations
 
@@ -543,6 +557,10 @@ The correlated-column integration tests generate their own temporary database, r
 At the latest full validation, the repository passed **1,470 pytest tests**, with clean Ruff lint and formatting checks.
 
 Detailed benchmark methodology, measurements, cardinality q-errors, and experimental interpretation are recorded separately in `docs/REPORT_M4.md`.
+
+Following the final SQL integration phases, the complete repository
+passed 1,576 automated tests on November 8, 2026, with clean Ruff
+lint and formatting checks.
 
 ## 13. Conclusion
 

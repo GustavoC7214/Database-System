@@ -193,27 +193,58 @@ LOAD Employees FROM 'employees.csv';
 
 The CSV loader expects records matching the table schema, without a header row.
 
+
 ## SQL Support and Limitations
 
-The SQL frontend supports a broader grammar than the integrated physical executor.
+The unified SQL shell integrates the SQL frontend, query optimizer,
+physical execution engine, and persistent storage layer.
 
-The unified shell has been tested with:
+### Supported SQL Features
 
-- `CREATE TABLE`
-- `INSERT INTO ... VALUES`
-- Basic `SELECT` queries
-- Projection and column-to-literal filtering
+The integrated execution path has automated test coverage for:
+
+- `CREATE TABLE` and `INSERT INTO ... VALUES`
+- `SELECT` with projection and filtering
+- `SELECT DISTINCT`
+- `ORDER BY` with ascending and descending ordering
+- `LIMIT`
+- `GROUP BY` and `HAVING`
+- `COUNT`, `SUM`, `AVG`, `MIN`, and `MAX`
+- Aggregate output aliases
+- `UNION` and `UNION ALL`
+- `INTERSECT` and `EXCEPT`
+- Supported equality joins
+- Combined filtering, grouping, sorting, and limiting
 - `ANALYZE`
-- `EXPLAIN`
-- `EXPLAIN ANALYZE`
+- `EXPLAIN` and `EXPLAIN ANALYZE`
 - `SET frames = n`
 - `LOAD table FROM file`
 
-The execution engine also implements join, sort, grouping, and set-operation algorithms. However, not every SQL construct can currently be translated into an executable physical plan.
+Set operations validate column counts and compatible column types.
+Their output column names follow the left input.
 
-For example, aggregate queries with `GROUP BY` are not yet supported through the unified SQL-to-physical-plan path.
+### Known Limitations
 
-Unsupported physical plans produce explicit errors rather than silently returning incorrect results.
+This project implements a restricted educational SQL dialect rather
+than the complete SQL standard.
+
+Not all syntactically valid queries can be translated into executable
+physical plans.
+
+Examples of limitations include:
+
+- Unsupported complex expressions and some Boolean predicates
+- Restricted physical join conditions
+- Limited support for aliases and derived-table execution
+- No complete transaction processing or crash recovery
+- No general UPDATE, DELETE, or ALTER TABLE interface
+
+Unsupported constructs produce explicit errors instead of silently
+returning incorrect results.
+
+For the supported grammar and additional restrictions, see
+[SQL Grammar](docs/GRAMMAR_SQL.md).
+results.
 
 ## Testing
 
@@ -236,11 +267,22 @@ python3 -m ruff check .
 python3 -m ruff format --check .
 ```
 
+
+Run the SQL integration regression tests:
+
+```bash
+python3 -m pytest \
+  tests/test_integration_groupby.py \
+  tests/test_integration_set_operations.py \
+  tests/test_integration_sql_hardening.py \
+  -v
+```
+
 ### Latest Verified Results
 
 As of November 8, 2026:
 
-- **1,532 automated tests passed** in 23.87 seconds.
+- **1,576 automated tests passed** in 24.48 seconds.
 - **27 workload regression tests passed**.
 - **25 of 25 integration benchmark queries completed successfully** with table statistics collected.
 - Ruff linting passed.

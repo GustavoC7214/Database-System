@@ -419,12 +419,18 @@ The integration tests cover:
 - Unsupported queries
 - Interactive shell execution
 - Recovery after statement errors
+- SQL sorting, DISTINCT, and LIMIT
+- GROUP BY, aggregate functions, and HAVING
+- UNION, UNION ALL, INTERSECT, and EXCEPT
+- Set-operation schema compatibility
+- Output column aliases
+- Combined SQL operations
 
 ### Verified Results
 
 On November 8, 2026:
 
-- 1,532 automated tests passed.
+- 1,576 automated tests passed.
 - All 25 queries in the deterministic integration workload executed successfully.
 - Table statistics were collected using ANALYZE before benchmarking.
 - Ruff linting passed.
@@ -443,9 +449,16 @@ The integrated database is an educational implementation with several limitation
 
 ### SQL Coverage
 
-The SQL frontend accepts a broader language than the physical lowering layer can execute.
+The SQL frontend accepts a broader language than the physical
+lowering layer can execute.
 
-For example, SQL grouping and aggregate queries are not fully supported through the unified execution path.
+The unified execution path now supports grouping, aggregate
+functions, HAVING, sorting, duplicate elimination, limiting,
+and the four SQL set operations.
+
+Remaining limitations include unsupported complex expressions,
+some Boolean predicates, restricted join conditions, and
+incomplete support for certain alias and derived-table scenarios.
 
 ### Physical Lowering
 
@@ -517,10 +530,7 @@ This would provide a more reliable foundation for later performance improvements
 
 ## 14. Conclusion
 
-The project demonstrates how a relational database can be assembled from independently developed components.
-
-Its central architectural principle is the separation of SQL processing, query optimization, physical execution, and persistent storage.
-
-The unified shell demonstrates these modules working together while preserving their individual interfaces and testability.
-
-The remaining development priorities are broader SQL execution coverage, validation against the final hidden workload, and improved estimated-versus-actual execution reporting.
+Future development priorities include broader SQL expression
+support, validation against unpublished workloads, improved
+estimated-versus-actual execution reporting, and more complete
+transaction processing.
